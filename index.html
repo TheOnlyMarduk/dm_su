@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <title>Mehrere Laufstrecken mit Leaflet</title>
+  <title>Strecken Übersicht mit Umlauten</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link
     rel="stylesheet"
@@ -17,7 +17,7 @@
   </style>
 </head>
 <body>
-  <h2>Laufstrecken Übersicht</h2>
+  <h2>Strecken Übersicht</h2>
   <div id="map"></div>
 
   <script>
@@ -41,7 +41,6 @@
         layerJugend.addData(dataJugend);
         layerBambini.addData(dataBambini);
 
-        // Karte auf alle Strecken zoom
         var allLayers = L.featureGroup([layer10km, layerJugend, layerBambini]);
         map.fitBounds(allLayers.getBounds());
       })
@@ -52,8 +51,9 @@
 
     L.control.layers(null, {
       "10 km": layer10km,
-      Jugend: layerJugend,
-      Bambini: layerBambini,
+      "Jugend": layerJugend,
+      "Bambini": layerBambini,
+      "Strecken Übersicht": layer10km, // Beispiel, kannst du anpassen oder weglassen
     }).addTo(map);
   </script>
 </body>
