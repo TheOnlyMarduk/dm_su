@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>Leaflet Laufstrecke Karte</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-sA+e2x4ZrsWy9E9L7Sz6ZxnYn+rNfCDgCdhN6Yhm0Po="
+    crossorigin="" />
+  
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-o9N1j6zjtwcY8mkI06DUE+p5qQff58cLlwMw05GLvFE="
+    crossorigin=""></script>
+  
+  <style>
+    #map {
+      height: 600px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 0;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Meine Laufstrecke</h2>
+<div id="map"></div>
+
+<script>
+  // Karte initialisieren, mit Standard-Zoom und Mittellage (Deutschland)
+  var map = L.map('map').setView([51.1657, 10.4515], 6);
+
+  // OpenStreetMap-Kachel-Layer
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap-Mitwirkende',
+    maxZoom: 19,
+  }).addTo(map);
+
+  // Leerer GeoJSON-Layer für die Laufstrecke (rot)
+  var laufstreckeLayer = L.geoJSON(null, {
+    style: { color: 'red', weight: 5 }
+  }).addTo(map);
+
+  // GeoJSON laden und auf die Karte legen
+  fetch('laufstrecke.geojson')
+    .then(response => response.json())
+    .then(data => {
+      laufstreckeLayer.addData(data);
+      // Karte zoomt automatisch auf die Laufstrecke
+      map.fitBounds(laufstreckeLayer.getBounds());
+    })
+    .catch(err => {
+      console.error("Fehler beim Laden der GeoJSON:", err);
+      alert("Die Laufstrecke konnte nicht geladen werden.");
+    });
+
+  // Layer-Steuerung hinzufügen (für Ein-/Ausschalten)
+  L.control.layers(null, {
+    "Laufstrecke": laufstreckeLayer
+  }).addTo(map);
+</script>
+
+</body>
+</html>
