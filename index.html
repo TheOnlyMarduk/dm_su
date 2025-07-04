@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <title>Strecken Übersicht mit Umlauten</title>
+  <title>Strecken</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link
     rel="stylesheet"
@@ -24,7 +24,7 @@
     var map = L.map("map").setView([51, 10], 6);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap",
+      attribution: "Â© OpenStreetMap",
     }).addTo(map);
 
     var layer10km = L.geoJSON(null, { style: { color: "red", weight: 4 } }).addTo(map);
