@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Meine Leaflet-Karte</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    #map { height: 600px; width: 100%; }
+  </style>
+</head>
+<body>
+
+<h2>Meine Linienkarte mit Leaflet</h2>
+<div id="map"></div>
+
+<script>
+  // Karte initialisieren
+  var map = L.map('map').setView([51.1657, 10.4515], 6); // Mitte Deutschland
+
+  // OpenStreetMap-Layer
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
+
+  // GeoJSON-Layer
+  var layer1 = L.geoJSON(null, {style: {color: 'red'}}).addTo(map);
+
+
+  // GeoJSON-Dateien laden
+  fetch('laufstrecke.geojson').then(res => res.json()).then(data => layer1.addData(data));
+
+  // Layer-Steuerung
+  L.control.layers(null, {
+    "Linie 1": layer1,
+  }).addTo(map);
+</script>
+
+</body>
+</html>
