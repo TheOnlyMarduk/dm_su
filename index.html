@@ -58,15 +58,17 @@
     }
 
     .ziel-icon {
-      background: white;
+     background: white;
       border: 2px solid black;
-      border-radius: 5px;
-      padding: 3px 6px;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      line-height: 30px;
+      text-align: center;
       font-weight: bold;
       color: black;
       font-size: 14px;
       user-select: none;
-      white-space: nowrap;
     }
   </style>
 </head>
@@ -128,8 +130,8 @@
     const zielIcon = L.divIcon({
       className: 'ziel-icon',
       html: 'Ziel',
-      iconSize: [40, 30],
-      iconAnchor: [20, 15],
+      iconSize: [30, 30],
+      iconAnchor: [15, 15],
       interactive: false
     });
     L.marker(goalLatLng, { icon: zielIcon, interactive: false }).addTo(map);
