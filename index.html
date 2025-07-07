@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Leaflet PolylineDecorator -->
+  <!-- Leaflet PolylineDecorator für Pfeile -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.polylineDecorator/1.7.0/leaflet.polylineDecorator.min.js"></script>
 
   <style>
@@ -21,6 +21,20 @@
     #map {
       height: 100vh;
       width: 100vw;
+    }
+    .marker-label {
+      background-color: white;
+      border: 2px solid black;
+      border-radius: 50%;
+      padding: 4px 6px;
+      font-weight: bold;
+      font-size: 12px;
+      text-align: center;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
   </style>
 </head>
@@ -36,70 +50,83 @@
     attribution: '© OpenStreetMap'
   }).addTo(map);
 
-  // Linie
+  const lineColor = 'blue'; // Nur hier Farbe festlegen
+
+  // GeoJSON-Layer für 10 km-Strecke
   const layer10km = L.geoJSON(null, {
-    style: { color: 'blue', weight: 4 }
+    style: { color: lineColor, weight: 4 }
   });
 
-  // Richtungspfeile
-  function drawArrowsFromGeoJSON(geojson, color) {
+  // Pfeile aus GeoJSON mit angle-Feld zeichnen
+  function drawArrowSymbolsFromGeoJSON(geojson, color = 'blue') {
     geojson.features.forEach(feature => {
-      const coords = feature.geometry.coordinates;
+      const coord = feature.geometry.coordinates;
       const angle = feature.properties.angle;
 
+      // Rotation korrigieren (Leaflet = 0° Süden → Korrektur: +90°)
       let corrected = angle + 90;
       if (corrected >= 360) corrected -= 360;
 
-      const rad = corrected * Math.PI / 180;
-      const latlng = L.latLng(coords[1], coords[0]);
-      const dx = 0.0003 * Math.cos(rad);
-      const dy = 0.0003 * Math.sin(rad);
-      const end = L.latLng(latlng.lat + dy, latlng.lng + dx);
+      const latlng = L.latLng(coord[1], coord[0]);
 
-      L.polyline([latlng, end], {
-        color: color,
-        weight: 2,
-        opacity: 1,
-        interactive: false
-      }).addTo(map);
+      const decorator = L.polylineDecorator([latlng, latlng], {
+        patterns: [
+          {
+            offset: '0%',
+            symbol: L.Symbol.arrowHead({
+              pixelSize: 10,
+              headAngle: 60,
+              pathOptions: {
+                color: color,
+                fillOpacity: 1,
+                weight: 1,
+                rotation: corrected
+              }
+            })
+          }
+        ]
+      });
+
+      decorator.addTo(map);
     });
   }
 
-  // Marker-Label (divIcon)
-  function createLabelIcon(text) {
-    return L.divIcon({
-      html: `<div style="
-        background: white;
-        border: 2px solid black;
-        border-radius: 50%;
-        width: 32px;
-        height: 32px;
-        line-height: 32px;
-        text-align: center;
-        font-weight: bold;
-        font-size: 13px;
-        color: black;
-      ">${text}</div>`,
-      iconSize: [32, 32],
-      iconAnchor: [16, 16],
-      className: '' // Wichtig: verhindert Standard-Leer-Div von Leaflet
-    });
+  // Marker mit individuellem Label
+  function createLabeledMarker(latlng, label) {
+    return L.marker(latlng, {
+      icon: L.divIcon({
+        className: 'marker-label',
+        html: label,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      }),
+      interactive: false
+    }).addTo(map);
   }
 
-  // Strecke laden
+  // Hauptdaten laden
   fetch('10km.geojson')
     .then(res => res.json())
     .then(data => {
       layer10km.addData(data).addTo(map);
       map.fitBounds(layer10km.getBounds(), { padding: [20, 20] });
 
-      // Start- und Zielpunkte ermitteln
+      // Start- und Zielmarker setzen
       const coords = data.features[0].geometry.coordinates;
-      const start = L.latLng(coords[0][1], coords[0][0]);
-      const ziel = L.latLng(coords[coords.length - 1][1], coords[coords.length - 1][0]);
+      const startLatLng = L.latLng(coords[0][1], coords[0][0]);
+      const endLatLng = L.latLng(coords[coords.length - 1][1], coords[coords.length - 1][0]);
 
-      // Marker setzen
-      L.marker(start, { icon: createLabelIcon("10k") }).addTo(map).bindPopup("Start");
-      L.marker(ziel, { icon: createLabelIcon("Ziel") }).addTo(map).bindPopup("Ziel");
+      createLabeledMarker(startLatLng, '10k');
+      createLabeledMarker(endLatLng, 'Ziel');
+    });
 
-      // Richtungspfeile laden
+  // Richtungsdaten laden
+  fetch('richtung.geojson')
+    .then(res => res.json())
+    .then(richtung => {
+      drawArrowSymbolsFromGeoJSON(richtung, lineColor);
+    });
+</script>
+
+</body>
+</html>
