@@ -51,10 +51,10 @@
       const rotation = (angle - 90) * -1;
       return L.marker(latlng, {
         icon: L.divIcon({
-          className: 'arrow-icon',
-          html: `<div style="transform: rotate(${angle}deg);">➤</div>`,
-          iconSize: [20, 20],
-          iconAnchor: [10, 10]
+        className: 'arrow-icon',
+        html: `<div style="transform: rotate(${rotation}deg);">➤</div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
         }),
         interactive: false // Kein Tooltip, kein Popup, keine Legende
       });
