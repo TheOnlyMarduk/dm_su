@@ -2,14 +2,14 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <title>Laufstreckenübersicht</title>
+  <title>10 km Laufstrecke</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <!-- Leaflet CSS + JS -->
+
+  <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Pfeile-Plugin -->
+  <!-- Pfeile Plugin -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.polylineDecorator/1.7.0/leaflet.polylineDecorator.min.js"></script>
 
   <style>
@@ -36,33 +36,19 @@
     attribution: '© OpenStreetMap'
   }).addTo(map);
 
-  // Ebenenreihenfolge festlegen
-  map.createPane('10kmPane');     map.getPane('10kmPane').style.zIndex = 400;
-  map.createPane('jugendPane');   map.getPane('jugendPane').style.zIndex = 410;
-  map.createPane('bambiniPane');  map.getPane('bambiniPane').style.zIndex = 420;
-
-  // Linien vorbereiten
+  // GeoJSON-Layer vorbereiten
   const layer10km = L.geoJSON(null, {
-    pane: '10kmPane',
     style: { color: 'blue', weight: 4 }
   });
-  const layerJugend = L.geoJSON(null, {
-    pane: 'jugendPane',
-    style: { color: 'green', weight: 4 }
-  });
-  const layerBambini = L.geoJSON(null, {
-    pane: 'bambiniPane',
-    style: { color: 'red', weight: 4 }
-  });
 
-  // Funktion: Richtungspfeile einfügen
-  function drawArrows(layer, intervalMeters = 200, color = 'black') {
+  // Pfeile-Funktion
+  function drawArrows(layer, intervalMeters = 200, color = 'blue') {
     layer.eachLayer(function(featureLayer) {
       const latlngs = featureLayer.getLatLngs();
       if (!Array.isArray(latlngs) || latlngs.length < 2) return;
 
-      const arrowLine = L.polyline(latlngs);
-      const arrowDecorator = L.polylineDecorator(arrowLine, {
+      const line = L.polyline(latlngs);
+      const decorator = L.polylineDecorator(line, {
         patterns: [
           {
             offset: 0,
@@ -74,39 +60,22 @@
           }
         ]
       });
-      arrowDecorator.addTo(map);
+      decorator.addTo(map);
     });
   }
 
-  // Daten laden und verarbeiten
-  Promise.all([
-    fetch('10km.geojson').then(r => r.json()),
-    fetch('jugend.geojson').then(r => r.json()),
-    fetch('bambini.geojson').then(r => r.json())
-  ])
-  .then(([data10km, dataJugend, dataBambini]) => {
-    layer10km.addData(data10km).addTo(map);
-    layerJugend.addData(dataJugend).addTo(map);
-    layerBambini.addData(dataBambini).addTo(map);
+  // GeoJSON laden
+  fetch('10km.geojson')
+    .then(res => res.json())
+    .then(data => {
+      layer10km.addData(data).addTo(map);
+      map.fitBounds(layer10km.getBounds(), { padding: [20, 20] });
 
-    drawArrows(layer10km, 200, 'blue');
-    drawArrows(layerJugend, 200, 'green');
-    drawArrows(layerBambini, 200, 'red');
-
-    // Auf alle Strecken zoomen
-    const all = L.featureGroup([layer10km, layerJugend, layerBambini]);
-    map.fitBounds(all.getBounds(), { padding: [20, 20] });
-  })
-  .catch(err => {
-    console.error("Fehler beim Laden der GeoJSON-Dateien:", err);
-  });
-
-  // Legende
-  L.control.layers(null, {
-    "Bambinilauf": layerBambini,
-    "Jugendstrecke": layerJugend,
-    "10 km": layer10km
-  }).addTo(map);
+      drawArrows(layer10km, 200, 'blue');
+    })
+    .catch(err => {
+      console.error("Fehler beim Laden der GeoJSON-Datei:", err);
+    });
 </script>
 
 </body>
