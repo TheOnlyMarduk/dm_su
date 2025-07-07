@@ -9,6 +9,9 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+  <!-- Leaflet PolylineDecorator für Richtungspfeile -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.polylineDecorator/1.7.0/leaflet.polylineDecorator.min.js"></script>
+
   <style>
     html, body {
       margin: 0;
@@ -19,11 +22,17 @@
       height: 100vh;
       width: 100vw;
     }
-
-    /* CSS für drehbare Pfeile */
-    .arrow-icon {
-      font-size: 18px;
-      transform-origin: center;
+    .label-icon {
+      background-color: white;
+      border: 2px solid black;
+      border-radius: 50%;
+      color: black;
+      font-size: 14px;
+      font-weight: bold;
+      text-align: center;
+      line-height: 30px;
+      width: 30px;
+      height: 30px;
     }
   </style>
 </head>
@@ -39,45 +48,78 @@
     attribution: '© OpenStreetMap'
   }).addTo(map);
 
-  // 10km-Linie
+  // GeoJSON-Layer
   const layer10km = L.geoJSON(null, {
-    style: { color: 'blue', weight: 2 }
+    style: { color: 'blue', weight: 4 }
   });
 
-  // Pfeil-Layer (nicht in der Legende)
-  const richtungLayer = L.geoJSON(null, {
-    pointToLayer: function(feature, latlng) {
-      const angle = feature.properties.angle || 0;
-      const rotation = (angle - 90 + 360) % 360;
-      const color = 'blue';
-      return L.marker(latlng, {
-        icon: L.divIcon({
-        className: 'arrow-icon',
-        html: `<div style="transform: rotate(${rotation}deg); font-size: 16px; color: ${color};">➤</div>`,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-        }),
-        interactive: false // Kein Tooltip, kein Popup, keine Legende
-      });
-    }
-  });
+  // Richtungspfeile laden
+  function drawArrowsFromGeoJSON(geojson, color) {
+    const angleFeatures = geojson.features;
+    angleFeatures.forEach(feature => {
+      const coords = feature.geometry.coordinates;
+      const angle = feature.properties.angle;
 
-  // 10km-Strecke laden
+      // Richtung korrigieren
+      let correctedAngle = angle + 90;
+      if (correctedAngle >= 360) correctedAngle -= 360;
+
+      const latlng = L.latLng(coords[1], coords[0]);
+      const angleRad = correctedAngle * Math.PI / 180;
+      const dx = 0.0003 * Math.cos(angleRad);
+      const dy = 0.0003 * Math.sin(angleRad);
+
+      const end = L.latLng(latlng.lat + dy, latlng.lng + dx);
+      const arrow = L.polyline([latlng, end], {
+        color: color,
+        weight: 2,
+        opacity: 1,
+        interactive: false
+      }).addTo(map);
+    });
+  }
+
+  // Benutzerdefinierte Div-Icons
+  function createLabelIcon(text) {
+    return L.divIcon({
+      className: 'label-icon',
+      html: text,
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    });
+  }
+
+  // GeoJSON-Daten laden
   fetch('10km.geojson')
     .then(res => res.json())
     .then(data => {
       layer10km.addData(data).addTo(map);
       map.fitBounds(layer10km.getBounds(), { padding: [20, 20] });
-    })
-    .catch(err => console.error("Fehler beim Laden der 10km.geojson:", err));
 
-  // Richtungspfeile laden
-  fetch('richtung.geojson')
-    .then(res => res.json())
-    .then(data => {
-      richtungLayer.addData(data).addTo(map);
+      // Start- und Zielmarker setzen
+      const coords = data.features[0].geometry.coordinates;
+      const startLatLng = L.latLng(coords[0][1], coords[0][0]);
+      const zielLatLng = L.latLng(coords[coords.length - 1][1], coords[coords.length - 1][0]);
+
+      L.marker(startLatLng, {
+        icon: createLabelIcon("10k")
+      }).addTo(map).bindPopup("Start");
+
+      L.marker(zielLatLng, {
+        icon: createLabelIcon("Ziel")
+      }).addTo(map).bindPopup("Ziel");
+
+      // Pfeile laden
+      fetch('richtung.geojson')
+        .then(res => res.json())
+        .then(richtungData => {
+          const color = layer10km.options.style.color || 'blue';
+          drawArrowsFromGeoJSON(richtungData, color);
+        });
     })
-    .catch(err => console.error("Fehler beim Laden der richtung.geojson:", err));
+    .catch(err => {
+      console.error("Fehler beim Laden der GeoJSON-Dateien:", err);
+    });
 </script>
 
 </body>
