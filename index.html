@@ -19,6 +19,12 @@
       height: 100vh;
       width: 100vw;
     }
+
+    /* CSS für drehbare Pfeile */
+    .arrow-icon {
+      font-size: 18px;
+      transform-origin: center;
+    }
   </style>
 </head>
 <body>
@@ -33,22 +39,24 @@
     attribution: '© OpenStreetMap'
   }).addTo(map);
 
-  // Hauptstrecke (10km)
+  // 10km-Linie
   const layer10km = L.geoJSON(null, {
     style: { color: 'blue', weight: 4 }
   });
 
-  // Pfeile als GeoJSON (separater Layer)
-  const layerPfeile = L.geoJSON(null, {
-    style: { color: 'red', weight: 2 },
+  // Pfeil-Layer (nicht in der Legende)
+  const richtungLayer = L.geoJSON(null, {
     pointToLayer: function(feature, latlng) {
+      const angle = feature.properties.angle || 0;
+
       return L.marker(latlng, {
         icon: L.divIcon({
           className: 'arrow-icon',
-          html: '➤',
+          html: `<div style="transform: rotate(${angle}deg);">➤</div>`,
           iconSize: [20, 20],
           iconAnchor: [10, 10]
-        })
+        }),
+        interactive: false // Kein Tooltip, kein Popup, keine Legende
       });
     }
   });
@@ -62,13 +70,13 @@
     })
     .catch(err => console.error("Fehler beim Laden der 10km.geojson:", err));
 
-  // Pfeile laden
-  fetch('pfeile.geojson')
+  // Richtungspfeile laden
+  fetch('richtung.geojson')
     .then(res => res.json())
     .then(data => {
-      layerPfeile.addData(data).addTo(map);
+      richtungLayer.addData(data).addTo(map);
     })
-    .catch(err => console.error("Fehler beim Laden der pfeile.geojson:", err));
+    .catch(err => console.error("Fehler beim Laden der richtung.geojson:", err));
 </script>
 
 </body>
