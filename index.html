@@ -10,7 +10,7 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <!-- Pfeile Plugin -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.polylineDecorator/1.7.0/leaflet.polylineDecorator.min.js"></script>
+  <script src="https://unpkg.com/leaflet-polylinedecorator@1.7.0/dist/leaflet.polylineDecorator.min.js"></script>
 
   <style>
     html, body {
@@ -36,16 +36,20 @@
     attribution: '© OpenStreetMap'
   }).addTo(map);
 
-  // GeoJSON-Layer vorbereiten
+  // GeoJSON-Layer
   const layer10km = L.geoJSON(null, {
     style: { color: 'blue', weight: 4 }
   });
 
-  // Pfeile-Funktion
+  // Richtungspfeile hinzufügen
   function drawArrows(layer, intervalMeters = 200, color = 'blue') {
-    layer.eachLayer(function(featureLayer) {
-      const latlngs = featureLayer.getLatLngs();
-      if (!Array.isArray(latlngs) || latlngs.length < 2) return;
+    layer.eachLayer(function (featureLayer) {
+      let latlngs = featureLayer.getLatLngs();
+      // Unterstützt verschachtelte MultiLineStrings
+      if (Array.isArray(latlngs[0])) {
+        latlngs = latlngs.flat();
+      }
+      if (latlngs.length < 2) return;
 
       const line = L.polyline(latlngs);
       const decorator = L.polylineDecorator(line, {
@@ -64,7 +68,7 @@
     });
   }
 
-  // GeoJSON laden
+  // GeoJSON laden und anzeigen
   fetch('10km.geojson')
     .then(res => res.json())
     .then(data => {
