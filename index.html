@@ -5,31 +5,19 @@
   <title>10 km Laufstrecke</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Leaflet -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Leaflet 1.7.1 -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 
-  <!-- PolylineDecorator (funktionierende Version) -->
-  <script src="https://unpkg.com/leaflet-polylinedecorator@1.7.0/dist/leaflet.polylineDecorator.min.js"></script>
+  <!-- Pfeile Plugin -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.polylineDecorator/1.7.0/leaflet.polylineDecorator.min.js"></script>
 
   <style>
     html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
+      margin: 0; padding: 0; height: 100%;
     }
     #map {
-      height: 100vh;
-      width: 100vw;
-    }
-    .label-icon {
-      background-color: white;
-      border: 2px solid black;
-      border-radius: 50%;
-      padding: 4px 6px;
-      font-weight: bold;
-      font-size: 14px;
-      text-align: center;
+      height: 100vh; width: 100vw;
     }
   </style>
 </head>
@@ -45,80 +33,94 @@
     attribution: '© OpenStreetMap'
   }).addTo(map);
 
-  // Hauptstrecke laden
+  // Farbe der Linie zentral definieren
+  const lineColor = 'blue';
+
+  // GeoJSON-Layer vorbereiten
   const layer10km = L.geoJSON(null, {
-    style: feature => ({
-      color: 'blue',
-      weight: 4
-    })
-  }).addTo(map);
+    style: { color: lineColor, weight: 4 }
+  });
 
-  // Start & Ziel Marker erzeugen
-  function createLabelMarker(latlng, text) {
-    return L.marker(latlng, {
-      icon: L.divIcon({
-        className: 'label-icon',
-        html: text,
-        iconSize: [30, 30],
-        iconAnchor: [15, 15]
-      })
-    }).addTo(map);
-  }
+  // Funktion: Pfeile aus Richtung GeoJSON mit angle-Property zeichnen
+  function drawArrowSymbolsFromGeoJSON(geojson) {
+    geojson.features.forEach(feature => {
+      if (!feature.geometry || feature.geometry.type !== 'Point') return;
 
-  // Richtungspfeile laden
-  function drawDirectionArrows(geojsonData, color) {
-    L.geoJSON(geojsonData, {
-      onEachFeature: function (feature, layer) {
-        const coord = feature.geometry.coordinates;
-        const angle = feature.properties.angle;
+      const coords = feature.geometry.coordinates;
+      const angleRaw = feature.properties.angle;
 
-        // Leaflet verwendet 0° = Osten, wir drehen: +90 (mit Überlauf)
-        let leafletAngle = (angle + 90) % 360;
+      // Angle anpassen (siehe vorherige Logik)
+      let angle = (angleRaw + 90) % 360;
 
-        const arrow = L.polylineDecorator(L.polyline([
-          [coord[1], coord[0]],
-          [coord[1], coord[0]]
-        ]), {
-          patterns: [
-            {
-              offset: 0,
-              symbol: L.Symbol.arrowHead({
-                pixelSize: 12,
-                headAngle: 60,
-                pathOptions: { color: color, fillOpacity: 1, weight: 2, rotate: true }
-              }),
-              angle: leafletAngle
-            }
-          ]
-        });
-        arrow.addTo(map);
-      }
+      // Leaflet erwartet LatLng (y,x)
+      const latlng = L.latLng(coords[1], coords[0]);
+
+      // Pfeil als Marker mit Rotation und Farbe passend zur Linie
+      const arrowIcon = L.divIcon({
+        className: 'arrow-icon',
+        html: '➤',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+        popupAnchor: [0, -10],
+        style: `color: ${lineColor}; transform: rotate(${angle}deg); font-size: 20px;`
+      });
+
+      L.marker(latlng, {icon: arrowIcon, interactive: false}).addTo(map);
     });
   }
 
-  // 10km-Strecke laden
+  // Funktion: Start und Ziel Marker setzen
+  function addStartAndGoalMarkers(geojson) {
+    if (!geojson.features.length) return;
+
+    const firstFeature = geojson.features[0];
+    const lastFeature = geojson.features[geojson.features.length - 1];
+
+    // Start
+    if (firstFeature.geometry && firstFeature.geometry.type === 'LineString') {
+      const startCoord = firstFeature.geometry.coordinates[0];
+      L.circleMarker([startCoord[1], startCoord[0]], {
+        radius: 12,
+        fillColor: 'white',
+        color: 'black',
+        weight: 2,
+        fillOpacity: 1
+      }).bindTooltip('10k Start', {permanent: true, direction: 'center', className: 'start-label'}).addTo(map).setTooltipContent('10k');
+    }
+
+    // Ziel
+    if (lastFeature.geometry && lastFeature.geometry.type === 'LineString') {
+      const coords = lastFeature.geometry.coordinates;
+      const goalCoord = coords[coords.length - 1];
+      L.circleMarker([goalCoord[1], goalCoord[0]], {
+        radius: 12,
+        fillColor: 'white',
+        color: 'black',
+        weight: 2,
+        fillOpacity: 1
+      }).bindTooltip('Ziel', {permanent: true, direction: 'center', className: 'goal-label'}).addTo(map).setTooltipContent('Ziel');
+    }
+  }
+
+  // Lade und zeige 10km Strecke
   fetch('10km.geojson')
     .then(res => res.json())
     .then(data => {
-      layer10km.addData(data);
+      layer10km.addData(data).addTo(map);
       map.fitBounds(layer10km.getBounds(), { padding: [20, 20] });
 
-      // Start/Ziel setzen
-      const coords = data.features[0].geometry.coordinates;
-      const start = [coords[0][1], coords[0][0]];
-      const end = [coords[coords.length - 1][1], coords[coords.length - 1][0]];
+      // Start- und Ziel-Marker setzen
+      addStartAndGoalMarkers(data);
+    })
+    .catch(err => console.error("Fehler beim Laden der 10km.geojson:", err));
 
-      createLabelMarker(start, "10k");
-      createLabelMarker(end, "Ziel");
-    });
-
-  // Richtungspfeile laden
+  // Lade und zeige Pfeilrichtung
   fetch('richtung.geojson')
     .then(res => res.json())
     .then(data => {
-      drawDirectionArrows(data, 'blue');
-    });
-
+      drawArrowSymbolsFromGeoJSON(data);
+    })
+    .catch(err => console.error("Fehler beim Laden der richtung.geojson:", err));
 </script>
 
 </body>
