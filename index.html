@@ -155,7 +155,7 @@
       const angleRaw = feature.properties.angle;
 
       // Korrektur: 0° = Süden, daher +90 und modulo 360
-      let angle = (angleRaw + 90) % 360;
+      let angle = (angleRaw + 270) % 360;
 
       const latlng = L.latLng(coords[1], coords[0]);
 
