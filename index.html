@@ -7,58 +7,34 @@
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
-    crossorigin=""
   />
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha512-J/mp0yRJJvFxW1g0sc7Rm+xwR2P3PvGTVRLc9L5QkTQ4HIsgP2c8yoxTdfAiN0v/ZnZxJpsT7D7Y/1TmhDZwWw=="
-    crossorigin=""
-  ></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     html, body {
       margin: 0;
       padding: 0;
       height: 100%;
-      font-family: sans-serif;
-    }
-
-    h2 {
-      text-align: center;
-      font-size: 1.5rem;
-      margin: 0.5em 0;
     }
 
     #map {
-      height: calc(100vh - 3.5em); /* nimmt ganze Höhe ein abzüglich Titel */
-      width: 100%;
-    }
-
-    /* Layer-Steuerung für mobile Ansicht besser positionieren */
-    .leaflet-control-layers {
-      font-size: 1em;
-    }
-
-    .leaflet-control-layers-expanded {
-      max-height: 200px;
-      overflow-y: auto;
+      height: 100vh;
+      width: 100vw;
     }
   </style>
 </head>
 <body>
 
-<h2>Laufstreckenübersicht</h2>
 <div id="map"></div>
 
 <script>
   const map = L.map('map');
 
+  // OSM-Hintergrundkarte
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap',
-    maxZoom: 18
+    attribution: '© OpenStreetMap'
   }).addTo(map);
 
-  // Zeichenebenen für Reihenfolge
+  // Ebenenreihenfolge definieren
   map.createPane('10kmPane');     map.getPane('10kmPane').style.zIndex = 400;
   map.createPane('jugendPane');   map.getPane('jugendPane').style.zIndex = 410;
   map.createPane('bambiniPane');  map.getPane('bambiniPane').style.zIndex = 420;
@@ -77,23 +53,30 @@
     style: { color: 'red', weight: 4 }
   });
 
-  // Daten laden und automatisch zoomen
+  // GeoJSON-Dateien laden
   Promise.all([
     fetch('10km.geojson').then(r => r.json()),
     fetch('jugend.geojson').then(r => r.json()),
     fetch('bambini.geojson').then(r => r.json())
-  ]).then(([data10km, dataJugend, dataBambini]) => {
-    layer10km.addData(data10km).addTo(map);
-    layerJugend.addData(dataJugend).addTo(map);
-    layerBambini.addData(dataBambini).addTo(map);
+  ])
+  .then(([data10km, dataJugend, dataBambini]) => {
+    layer10km.addData(data10km);
+    layerJugend.addData(dataJugend);
+    layerBambini.addData(dataBambini);
 
-    const groupBounds = L.featureGroup([layer10km, layerJugend, layerBambini]).getBounds();
-    map.fitBounds(groupBounds);
-  }).catch(err => {
+    layer10km.addTo(map);
+    layerJugend.addTo(map);
+    layerBambini.addTo(map);
+
+    // Automatischer Zoom auf alle Strecken
+    const bounds = L.featureGroup([layer10km, layerJugend, layerBambini]).getBounds();
+    map.fitBounds(bounds, { padding: [20, 20] });
+  })
+  .catch(err => {
     console.error("Fehler beim Laden der GeoJSON-Dateien:", err);
   });
 
-  // Legende / Layer-Schalter
+  // Legende
   L.control.layers(null, {
     "Bambinilauf": layerBambini,
     "Jugendstrecke": layerJugend,
