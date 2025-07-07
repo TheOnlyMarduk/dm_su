@@ -98,56 +98,72 @@
     }
 
     // Start- und Zielmarker setzen
-    function addStartAndGoalMarkers(geojson) {
-      if (!geojson.features.length) return;
+  function addStartAndGoalMarkers(geojson) {
+  if (!geojson.features.length) return;
 
-      const startCoords = geojson.features[0].geometry.coordinates[0];
-      const startLatLng = L.latLng(startCoords[1] + 0.0003, startCoords[0]); // leicht nach Norden verschoben
+  // Feature aus 10km.geojson - wir nehmen an, dass es ein LineString ist
+  const feature = geojson.features[0];
+  let coords;
 
-      const startIcon = L.divIcon({
-        className: "start-goal-icon",
-        html: `<div style="
-          background: white;
-          border: 2px solid black;
-          border-radius: 50%;
-          width: 30px;
-          height: 30px;
-          line-height: 30px;
-          text-align: center;
-          font-weight: bold;
-          font-size: 14px;
-          color: black;
-          ">10k</div>`,
-        iconAnchor: [15, 15],
-        interactive: false,
-      });
+  // Je nach Geometrie-Typ:
+  if (feature.geometry.type === "LineString") {
+    coords = feature.geometry.coordinates;
+  } else if (feature.geometry.type === "MultiLineString") {
+    // Für MultiLineString nehmen wir alle Koordinaten der ersten Linie
+    coords = feature.geometry.coordinates[0];
+  } else {
+    console.error("Unbekannter Geometrie-Typ für Start/Ziel");
+    return;
+  }
 
-      L.marker(startLatLng, { icon: startIcon, interactive: false }).addTo(map);
+  // Erster Punkt der Strecke (Start)
+  const startCoords = coords[0];
+  const startLatLng = L.latLng(startCoords[1] + 0.0003, startCoords[0]); // leicht nach Norden verschoben
 
-      const lineCoords = geojson.features[0].geometry.coordinates;
-      const lastCoords = lineCoords[lineCoords.length - 1];
-      const goalLatLng = L.latLng(lastCoords[1], lastCoords[0]);
+  const startIcon = L.divIcon({
+    className: "start-goal-icon",
+    html: `<div style="
+      background: white;
+      border: 2px solid black;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      line-height: 30px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 14px;
+      color: black;
+      ">10k</div>`,
+    iconAnchor: [15, 15],
+    interactive: false,
+  });
 
-      const goalIcon = L.divIcon({
-        className: "start-goal-icon",
-        html: `<div style="
-          background: white;
-          border: 2px solid black;
-          border-radius: 50%;
-          width: 30px;
-          height: 30px;
-          line-height: 30px;
-          text-align: center;
-          font-weight: bold;
-          font-size: 14px;
-          color: black;
-          ">Ziel</div>`,
-        iconAnchor: [15, 15],
-        interactive: false,
-      });
+  L.marker(startLatLng, { icon: startIcon, interactive: false }).addTo(map);
 
-      L.marker(goalLatLng, { icon: goalIcon, interactive: false }).addTo(map);
-    }
+  // Letzter Punkt der Strecke (Ziel)
+  const lastCoords = coords[coords.length - 1];
+  const goalLatLng = L.latLng(lastCoords[1], lastCoords[0]);
+
+  const goalIcon = L.divIcon({
+    className: "start-goal-icon",
+    html: `<div style="
+      background: white;
+      border: 2px solid black;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      line-height: 30px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 14px;
+      color: black;
+      ">Ziel</div>`,
+    iconAnchor: [15, 15],
+    interactive: false,
+  });
+
+  L.marker(goalLatLng, { icon: goalIcon, interactive: false }).addTo(map);
+}
 
     // GeoJSON laden und Karte aufbauen
     Promise.all([
