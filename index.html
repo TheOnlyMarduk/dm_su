@@ -5,15 +5,12 @@
   <title>10 km Laufstrecke</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Leaflet CSS & JS -->
+  <!-- Leaflet -->
   <link
     rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
   />
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <!-- PolylineDecorator 1.7.1 -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.polylineDecorator/1.7.1/leaflet.polylineDecorator.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 
   <style>
     html,
@@ -26,144 +23,156 @@
       height: 100vh;
       width: 100vw;
     }
+
+    /* Pfeil-Icon */
+    .arrow-icon {
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      pointer-events: none;
+      /* kein Interaktion */
+    }
+
+    .arrow-symbol {
+      display: inline-block;
+      transform-origin: center;
+      color: blue; /* default, wird im JS überschrieben */
+    }
+
+    /* Start- und Ziel-Icons */
+    .start-icon {
+      background: white;
+      border: 2px solid black;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      line-height: 30px;
+      text-align: center;
+      font-weight: bold;
+      color: black;
+      font-size: 14px;
+      user-select: none;
+    }
+
+    .ziel-icon {
+      background: white;
+      border: 2px solid black;
+      border-radius: 5px;
+      padding: 3px 6px;
+      font-weight: bold;
+      color: black;
+      font-size: 14px;
+      user-select: none;
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
-  <div id="map"></div>
 
-  <script>
-    const map = L.map("map");
+<div id="map"></div>
 
-    // Hintergrundkarte
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: "© OpenStreetMap",
-    }).addTo(map);
+<script>
+  const map = L.map('map');
 
-    // Zentrale Linienfarbe
-    const lineColor = "blue";
+  // Hintergrundkarte
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+  }).addTo(map);
 
-    // Layer für 10km Strecke
-    const layer10km = L.geoJSON(null, {
-      style: { color: lineColor, weight: 4 },
+  // Linienfarbe
+  const lineColor = 'blue';
+
+  // GeoJSON-Layer vorbereiten
+  const layer10km = L.geoJSON(null, {
+    style: { color: lineColor, weight: 4 }
+  });
+
+  // 10km-Strecke laden und anzeigen
+  fetch('10km.geojson')
+    .then(res => res.json())
+    .then(data => {
+      layer10km.addData(data).addTo(map);
+      map.fitBounds(layer10km.getBounds(), { padding: [20, 20] });
+
+      addStartAndGoalMarkers(data);
+      loadAndDrawArrows();
+    })
+    .catch(err => {
+      console.error("Fehler beim Laden der 10km.geojson:", err);
     });
 
-    // Pfeile aus richtung.geojson zeichnen
-    function drawArrowSymbolsFromGeoJSON(geojson) {
-      geojson.features.forEach((feature) => {
-        const coords = feature.geometry.coordinates.map((c) =>
-          L.latLng(c[1], c[0])
-        );
-        if (coords.length < 2) return;
+  // Start- und Zielmarker hinzufügen
+  function addStartAndGoalMarkers(geojson) {
+    if (!geojson.features || geojson.features.length === 0) return;
 
-        const angleProp = feature.properties.angle;
-        // Richtung anpassen (angle + 180° modulo 360)
-        const rotationAngle = (angleProp + 180) % 360;
+    // Annahme: LineString im ersten Feature
+    const coords = geojson.features[0].geometry.coordinates;
+    if (!coords || coords.length < 2) return;
 
-        // Linie ohne Pfeile (transparent)
-        const invisibleLine = L.polyline(coords, {
-          color: "transparent",
-          weight: 8,
-        }).addTo(map);
+    // Start
+    const startLatLng = L.latLng(coords[0][1], coords[0][0]);
+    const startIcon = L.divIcon({
+      className: 'start-icon',
+      html: '10k',
+      iconSize: [30, 30],
+      iconAnchor: [15, 15],
+      interactive: false
+    });
+    L.marker(startLatLng, { icon: startIcon, interactive: false }).addTo(map);
 
-        const arrowSymbol = L.Symbol.arrowHead({
-          pixelSize: 15,
-          polygon: true,
-          pathOptions: { color: lineColor, fillOpacity: 1, weight: 1 },
-          // rotationAngle: rotationAngle,
-        });
+    // Ziel
+    const goalLatLng = L.latLng(coords[coords.length - 1][1], coords[coords.length - 1][0]);
+    const zielIcon = L.divIcon({
+      className: 'ziel-icon',
+      html: 'Ziel',
+      iconSize: [40, 30],
+      iconAnchor: [20, 15],
+      interactive: false
+    });
+    L.marker(goalLatLng, { icon: zielIcon, interactive: false }).addTo(map);
+  }
 
-        // Eigene Methode, um Pfeil als Marker mit Rotation an jedem Punkt zu setzen
-        const arrowMarker = L.marker(coords[0], {
-          icon: L.divIcon({ className: "arrow-icon" }),
-          rotationAngle: rotationAngle,
-        });
-
-        // Statt Marker hier nutzen wir PolylineDecorator mit Pattern an jeder Linie
-        const decorator = L.polylineDecorator(invisibleLine, {
-          patterns: [
-            {
-              offset: 0,
-              repeat: 200 + "m",
-              symbol: L.Symbol.arrowHead({
-                pixelSize: 15,
-                polygon: true,
-                pathOptions: { color: lineColor, fillOpacity: 1, weight: 1 },
-                rotationAngle: rotationAngle,
-              }),
-            },
-          ],
-        });
-        decorator.addTo(map);
-      });
-    }
-
-    // Start- und Zielmarker setzen
-    function addStartAndGoalMarkers(geojson) {
-      if (!geojson.features.length) return;
-
-      const startCoords = geojson.features[0].geometry.coordinates[0];
-      const startLatLng = L.latLng(startCoords[1] + 0.0003, startCoords[0]); // leicht nach Norden verschoben
-
-      const startIcon = L.divIcon({
-        className: "start-goal-icon",
-        html: `<div style="
-          background: white;
-          border: 2px solid black;
-          border-radius: 50%;
-          width: 30px;
-          height: 30px;
-          line-height: 30px;
-          text-align: center;
-          font-weight: bold;
-          font-size: 14px;
-          color: black;
-          ">10k</div>`,
-        iconAnchor: [15, 15],
-        interactive: false,
-      });
-
-      L.marker(startLatLng, { icon: startIcon, interactive: false }).addTo(map);
-
-      const lineCoords = geojson.features[0].geometry.coordinates;
-      const lastCoords = lineCoords[lineCoords.length - 1];
-      const goalLatLng = L.latLng(lastCoords[1], lastCoords[0]);
-
-      const goalIcon = L.divIcon({
-        className: "start-goal-icon",
-        html: `<div style="
-          background: white;
-          border: 2px solid black;
-          border-radius: 50%;
-          width: 30px;
-          height: 30px;
-          line-height: 30px;
-          text-align: center;
-          font-weight: bold;
-          font-size: 14px;
-          color: black;
-          ">Ziel</div>`,
-        iconAnchor: [15, 15],
-        interactive: false,
-      });
-
-      L.marker(goalLatLng, { icon: goalIcon, interactive: false }).addTo(map);
-    }
-
-    // GeoJSON laden und Karte aufbauen
-    Promise.all([
-      fetch("10km.geojson").then((res) => res.json()),
-      fetch("richtung.geojson").then((res) => res.json()),
-    ])
-      .then(([tenKmData, richtungData]) => {
-        layer10km.addData(tenKmData).addTo(map);
-        map.fitBounds(layer10km.getBounds(), { padding: [20, 20] });
-
-        drawArrowSymbolsFromGeoJSON(richtungData);
-        addStartAndGoalMarkers(tenKmData);
+  // Pfeile aus Richtung-GeoJSON laden und anzeigen
+  function loadAndDrawArrows() {
+    fetch('richtung.geojson')
+      .then(res => res.json())
+      .then(data => {
+        drawArrowSymbolsFromGeoJSON(data);
       })
-      .catch((err) =>
-        console.error("Fehler beim Laden der GeoJSON-Datei:", err)
-      );
-  </script>
+      .catch(err => {
+        console.error("Fehler beim Laden der richtung.geojson:", err);
+      });
+  }
+
+  function drawArrowSymbolsFromGeoJSON(geojson) {
+    geojson.features.forEach(feature => {
+      if (!feature.geometry || feature.geometry.type !== 'Point') return;
+
+      const coords = feature.geometry.coordinates;
+      const angleRaw = feature.properties.angle;
+
+      // Korrektur: 0° = Süden, daher +90 und modulo 360
+      let angle = (angleRaw + 270) % 360;
+
+      const latlng = L.latLng(coords[1], coords[0]);
+
+      const arrowHtml = `<span class="arrow-symbol" style="transform: rotate(${angle}deg); color: ${lineColor};">➤</span>`;
+
+      const arrowIcon = L.divIcon({
+        className: 'arrow-icon',
+        html: arrowHtml,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+        interactive: false
+      });
+
+      L.marker(latlng, { icon: arrowIcon, interactive: false }).addTo(map);
+    });
+  }
+</script>
+
 </body>
 </html>
