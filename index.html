@@ -48,7 +48,7 @@
   const richtungLayer = L.geoJSON(null, {
     pointToLayer: function(feature, latlng) {
       const angle = feature.properties.angle || 0;
-      const rotation = (angle - 90 + 360) % 360;
+      const rotation = (angle - 45 + 360) % 360;
       return L.marker(latlng, {
         icon: L.divIcon({
         className: 'arrow-icon',
