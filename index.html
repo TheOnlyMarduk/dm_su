@@ -9,9 +9,6 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Pfeile Plugin -->
-  <script src="https://unpkg.com/leaflet-polylinedecorator@1.7.0/dist/leaflet.polylineDecorator.min.js"></script>
-
   <style>
     html, body {
       margin: 0;
@@ -36,50 +33,42 @@
     attribution: '© OpenStreetMap'
   }).addTo(map);
 
-  // GeoJSON-Layer
+  // Hauptstrecke (10km)
   const layer10km = L.geoJSON(null, {
     style: { color: 'blue', weight: 4 }
   });
 
-  // Richtungspfeile hinzufügen
-  function drawArrows(layer, intervalMeters = 200, color = 'blue') {
-    layer.eachLayer(function (featureLayer) {
-      let latlngs = featureLayer.getLatLngs();
-      // Unterstützt verschachtelte MultiLineStrings
-      if (Array.isArray(latlngs[0])) {
-        latlngs = latlngs.flat();
-      }
-      if (latlngs.length < 2) return;
-
-      const line = L.polyline(latlngs);
-      const decorator = L.polylineDecorator(line, {
-        patterns: [
-          {
-            offset: 0,
-            repeat: intervalMeters + 'm',
-            symbol: L.Symbol.arrowHead({
-              pixelSize: 10,
-              pathOptions: { color: color, fillOpacity: 1, weight: 1 }
-            })
-          }
-        ]
+  // Pfeile als GeoJSON (separater Layer)
+  const layerPfeile = L.geoJSON(null, {
+    style: { color: 'red', weight: 2 },
+    pointToLayer: function(feature, latlng) {
+      return L.marker(latlng, {
+        icon: L.divIcon({
+          className: 'arrow-icon',
+          html: '➤',
+          iconSize: [20, 20],
+          iconAnchor: [10, 10]
+        })
       });
-      decorator.addTo(map);
-    });
-  }
+    }
+  });
 
-  // GeoJSON laden und anzeigen
+  // 10km-Strecke laden
   fetch('10km.geojson')
     .then(res => res.json())
     .then(data => {
       layer10km.addData(data).addTo(map);
       map.fitBounds(layer10km.getBounds(), { padding: [20, 20] });
-
-      drawArrows(layer10km, 200, 'blue');
     })
-    .catch(err => {
-      console.error("Fehler beim Laden der GeoJSON-Datei:", err);
-    });
+    .catch(err => console.error("Fehler beim Laden der 10km.geojson:", err));
+
+  // Pfeile laden
+  fetch('pfeile.geojson')
+    .then(res => res.json())
+    .then(data => {
+      layerPfeile.addData(data).addTo(map);
+    })
+    .catch(err => console.error("Fehler beim Laden der pfeile.geojson:", err));
 </script>
 
 </body>
