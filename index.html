@@ -19,12 +19,12 @@
   // Karte initialisieren
   const map = L.map('map').setView([51.1657, 10.4515], 6); // Deutschlandmitte
 
-  // OpenStreetMap-Tiles
+  // Hintergrundkarte (OpenStreetMap)
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
   }).addTo(map);
 
-  // 🔹 Panes für Layer-Zeichenreihenfolge
+  // Zeichenebenen mit Z-Index
   map.createPane('10kmPane');
   map.getPane('10kmPane').style.zIndex = 400;
 
@@ -34,38 +34,23 @@
   map.createPane('bambiniPane');
   map.getPane('bambiniPane').style.zIndex = 420;
 
-  // 🔹 Layer definieren mit jeweiligem Pane
+  // Layer definieren (ohne Popup)
   const layer10km = L.geoJSON(null, {
     pane: '10kmPane',
-    style: { color: 'blue', weight: 4 },
-    onEachFeature: (feature, layer) => {
-      if (feature.properties?.name) {
-        layer.bindPopup(`<strong>${feature.properties.name}</strong>`);
-      }
-    }
+    style: { color: 'blue', weight: 4 }
   });
 
   const layerJugend = L.geoJSON(null, {
     pane: 'jugendPane',
-    style: { color: 'green', weight: 4 },
-    onEachFeature: (feature, layer) => {
-      if (feature.properties?.name) {
-        layer.bindPopup(`<strong>${feature.properties.name}</strong>`);
-      }
-    }
+    style: { color: 'green', weight: 4 }
   });
 
   const layerBambini = L.geoJSON(null, {
     pane: 'bambiniPane',
-    style: { color: 'red', weight: 4 },
-    onEachFeature: (feature, layer) => {
-      if (feature.properties?.name) {
-        layer.bindPopup(`<strong>${feature.properties.name}</strong>`);
-      }
-    }
+    style: { color: 'red', weight: 4 }
   });
 
-  // 🔹 GeoJSON laden
+  // GeoJSON-Dateien laden
   fetch('10km.geojson')
     .then(res => res.json())
     .then(data => layer10km.addData(data));
@@ -78,12 +63,12 @@
     .then(res => res.json())
     .then(data => layerBambini.addData(data));
 
-  // 🔹 Alle Layer zur Karte hinzufügen
+  // Layer zur Karte hinzufügen
   layer10km.addTo(map);
   layerJugend.addTo(map);
   layerBambini.addTo(map);
 
-  // 🔹 Layer-Steuerung (Legende)
+  // Layer-Steuerung (Legende)
   L.control.layers(null, {
     "Bambinilauf": layerBambini,
     "Jugendstrecke": layerJugend,
