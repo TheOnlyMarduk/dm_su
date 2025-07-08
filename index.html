@@ -5,11 +5,13 @@
   <title>10 km Laufstrecke</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Leaflet -->
+  <!-- Leaflet Stylesheet (für die Karte) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+  <!-- Leaflet Skript -->
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 
   <style>
+    /* Grundlayout: Body und Map füllen das gesamte Fenster */
     html, body {
       margin: 0;
       padding: 0;
@@ -21,6 +23,7 @@
       width: 100vw;
     }
 
+    /* Stil für Richtungspfeile (➤) */
     .arrow-icon {
       font-size: 20px;
       display: flex;
@@ -28,7 +31,7 @@
       justify-content: center;
       width: 20px;
       height: 20px;
-      pointer-events: none;
+      pointer-events: none; /* Keine Interaktion */
     }
 
     .arrow-symbol {
@@ -37,6 +40,7 @@
       color: blue;
     }
 
+    /* Start- und Zielmarker haben festen Stil, aber skalieren dynamisch */
     .start-goal-icon {
       pointer-events: none;
     }
@@ -62,29 +66,38 @@
 </head>
 <body>
 
+<!-- Container für die Leaflet-Karte -->
 <div id="map"></div>
 
 <script>
+  // Karte initialisieren
   const map = L.map('map');
 
-  // Hintergrundkarte
+  // OSM-Kachelkarte laden
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
   }).addTo(map);
 
+  // Farbe für die Laufstrecke
   const lineColor = 'blue';
+
+  // GeoJSON-Layer für die 10km-Strecke vorbereiten
   const layer10km = L.geoJSON(null, {
     style: { color: lineColor, weight: 4 }
   });
 
+  // Marker-Referenzen für späteres Updaten
   let startMarker, goalMarker;
 
+  // 10km-Strecke laden und zur Karte hinzufügen
   fetch('10km.geojson')
     .then(res => res.json())
     .then(data => {
       layer10km.addData(data).addTo(map);
+      // Karte auf die Strecke zoomen
       map.fitBounds(layer10km.getBounds(), { padding: [20, 20] });
 
+      // Marker und Richtungspfeile laden
       addStartAndGoalMarkers(data);
       loadAndDrawArrows();
     })
@@ -92,10 +105,15 @@
       console.error("Fehler beim Laden der 10km.geojson:", err);
     });
 
+  /**
+   * Dynamisch skalierte HTML-Label für Start/Ziel
+   * @param {string} text - Labeltext (z.B. "10k" oder "Ziel")
+   * @param {number} baseSize - Basisgröße in Pixeln
+   */
   function createScaledMarkerLabel(text, baseSize) {
-    const zoom = map.getZoom();
-    const scale = Math.min(1, Math.max(0.6, (zoom - 12) / 6));
-    const size = baseSize * scale;
+    const zoom = map.getZoom(); // aktuelle Zoomstufe
+    const scale = Math.min(1, Math.max(0.6, (zoom - 12) / 6)); // begrenzt Skalierung
+    const size = baseSize * scale; // tatsächliche Größe berechnen
 
     return `
       <div class="marker-label" style="width:${size}px; height:${size}px; font-size:${size * 0.45}px;">
@@ -104,14 +122,19 @@
     `;
   }
 
+  /**
+   * Start- und Zielmarker zur Karte hinzufügen
+   */
   function addStartAndGoalMarkers(geojson) {
     if (!geojson.features || geojson.features.length === 0) return;
     const coords = geojson.features[0].geometry.coordinates;
     if (!coords || coords.length < 2) return;
 
+    // Start- und Zielkoordinaten aus GeoJSON lesen
     const startLatLng = L.latLng(coords[0][1], coords[0][0]);
     const goalLatLng = L.latLng(coords[coords.length - 1][1], coords[coords.length - 1][0]);
 
+    // Icons dynamisch generieren (mit Skalierung)
     const startIcon = () => L.divIcon({
       className: "start-goal-icon",
       iconAnchor: [15, 15],
@@ -126,19 +149,24 @@
       interactive: false
     });
 
+    // Existierende Marker entfernen
     if (startMarker) map.removeLayer(startMarker);
     if (goalMarker) map.removeLayer(goalMarker);
 
+    // Neue Marker setzen
     startMarker = L.marker(startLatLng, { icon: startIcon(), interactive: false }).addTo(map);
     goalMarker = L.marker(goalLatLng, { icon: goalIcon(), interactive: false }).addTo(map);
 
-    // Dynamisch anpassen beim Zoom
+    // Marker bei Zoom dynamisch anpassen
     map.on('zoomend', () => {
       startMarker.setIcon(startIcon());
       goalMarker.setIcon(goalIcon());
     });
   }
 
+  /**
+   * Richtungspfeile laden
+   */
   function loadAndDrawArrows() {
     fetch('richtung.geojson')
       .then(res => res.json())
@@ -148,15 +176,20 @@
       });
   }
 
+  /**
+   * Pfeile auf der Karte darstellen
+   */
   function drawArrowSymbolsFromGeoJSON(geojson) {
     geojson.features.forEach(feature => {
       if (!feature.geometry || feature.geometry.type !== 'Point') return;
 
       const coords = feature.geometry.coordinates;
       const angleRaw = feature.properties.angle;
-      const angle = (angleRaw + 270) % 360;
+      const angle = (angleRaw + 270) % 360; // 0° = Süden → Leaflet braucht 0° = Osten
 
       const latlng = L.latLng(coords[1], coords[0]);
+
+      // HTML für Pfeil erzeugen
       const arrowHtml = `<span class="arrow-symbol" style="transform: rotate(${angle}deg); color: ${lineColor};">➤</span>`;
 
       const arrowIcon = L.divIcon({
@@ -167,6 +200,7 @@
         interactive: false
       });
 
+      // Marker mit Pfeil platzieren
       L.marker(latlng, { icon: arrowIcon, interactive: false }).addTo(map);
     });
   }
