@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -161,7 +162,7 @@
 
       const latlng = L.latLng(coords[1], coords[0]);
 
-      const arrowHtml = <span class="arrow-symbol" style="transform: rotate(${angle}deg); color: ${lineColor};">➤</span>;
+      const arrowHtml = `<span class="arrow-symbol" style="transform: rotate(${angle}deg); color: ${lineColor};">➤</span>`;
 
       const arrowIcon = L.divIcon({
         className: 'arrow-icon',
