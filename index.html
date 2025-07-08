@@ -37,7 +37,6 @@
       color: blue;
     }
 
-    /* Start- und Zielmarker fix skaliert */
     .start-goal-icon {
       pointer-events: none;
     }
@@ -46,15 +45,12 @@
       background: white;
       border: 2px solid black;
       border-radius: 50%;
-      width: 30px;
-      height: 30px;
-      line-height: 30px;
       text-align: center;
       font-weight: bold;
-      font-size: 14px;
       color: black;
       box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
       user-select: none;
+      display: inline-block;
     }
   </style>
 </head>
@@ -64,23 +60,18 @@
 
 <script>
   const map = L.map('map');
+  const lineColor = 'blue';
 
-  // Hintergrundkarte
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
   }).addTo(map);
-
-  // Linienfarbe
-  const lineColor = 'blue';
 
   const layer10km = L.geoJSON(null, {
     style: { color: lineColor, weight: 4 }
   });
 
-  // Start- und Zielmarker
   let startMarker, goalMarker;
 
-  // GeoJSON laden
   fetch('10km.geojson')
     .then(res => res.json())
     .then(data => {
@@ -94,6 +85,28 @@
       console.error("Fehler beim Laden der 10km.geojson:", err);
     });
 
+  function createDynamicIcon(label) {
+    const zoom = map.getZoom();
+    let size = 30;
+    let fontSize = 14;
+
+    if (zoom < 14) {
+      size = 22;
+      fontSize = 12;
+    }
+    if (zoom < 12) {
+      size = 18;
+      fontSize = 10;
+    }
+
+    return L.divIcon({
+      className: "start-goal-icon",
+      iconAnchor: [size / 2, size / 2],
+      html: `<div class="marker-label" style="width:${size}px;height:${size}px;line-height:${size}px;font-size:${fontSize}px;">${label}</div>`,
+      interactive: false
+    });
+  }
+
   function addStartAndGoalMarkers(geojson) {
     if (!geojson.features || geojson.features.length === 0) return;
     const coords = geojson.features[0].geometry.coordinates;
@@ -102,29 +115,19 @@
     const startLatLng = L.latLng(coords[0][1], coords[0][0]);
     const goalLatLng = L.latLng(coords[coords.length - 1][1], coords[coords.length - 1][0]);
 
-    const startIcon = L.divIcon({
-      className: "start-goal-icon",
-      iconAnchor: [15, 15],
-      html: `<div class="marker-label">10k</div>`,
-      interactive: false
-    });
-
-    const goalIcon = L.divIcon({
-      className: "start-goal-icon",
-      iconAnchor: [15, 15],
-      html: `<div class="marker-label">Ziel</div>`,
-      interactive: false
-    });
-
-    if (startMarker) map.removeLayer(startMarker);
-    if (goalMarker) map.removeLayer(goalMarker);
-
-    startMarker = L.marker(startLatLng, { icon: startIcon }).addTo(map);
-    goalMarker = L.marker(goalLatLng, { icon: goalIcon }).addTo(map);
+    startMarker = L.marker(startLatLng, { icon: createDynamicIcon('10k') }).addTo(map);
+    goalMarker = L.marker(goalLatLng, { icon: createDynamicIcon('Ziel') }).addTo(map);
 
     startMarker.bringToFront();
     goalMarker.bringToFront();
   }
+
+  map.on('zoomend', () => {
+    if (startMarker && goalMarker) {
+      startMarker.setIcon(createDynamicIcon('10k'));
+      goalMarker.setIcon(createDynamicIcon('Ziel'));
+    }
+  });
 
   function loadAndDrawArrows() {
     fetch('richtung.geojson')
@@ -143,9 +146,7 @@
 
       const coords = feature.geometry.coordinates;
       const angleRaw = feature.properties.angle;
-
-      // Korrektur: 0° = Süden → +270 (statt +90)
-      let angle = (angleRaw + 270) % 360;
+      const angle = (angleRaw + 270) % 360;  // Korrektur: Norden = 0
 
       const latlng = L.latLng(coords[1], coords[0]);
 
