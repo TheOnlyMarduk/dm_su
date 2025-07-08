@@ -16,7 +16,7 @@ function loadAndDrawParking() {
           className: "start-goal-icon",
           iconAnchor: [15, 15],
           html: createScaledMarkerLabel("P", 30), // Großes "P"
-          interactive: false
+    
         });
 
         // Marker hinzufügen
