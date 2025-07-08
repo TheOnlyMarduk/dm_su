@@ -21,7 +21,6 @@
       width: 100vw;
     }
 
-    /* Pfeile */
     .arrow-icon {
       font-size: 20px;
       display: flex;
@@ -38,10 +37,8 @@
       color: blue;
     }
 
-    /* Start/Ziel-Icons (werden skaliert per Zoom) */
     .start-goal-icon {
       pointer-events: none;
-      transition: transform 0.2s ease;
     }
 
     .marker-label {
@@ -55,7 +52,9 @@
       font-weight: bold;
       font-size: 14px;
       color: black;
+      box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
       user-select: none;
+      transform-origin: center center;
     }
   </style>
 </head>
@@ -65,13 +64,12 @@
 
 <script>
   const map = L.map('map');
-  const lineColor = 'blue';
 
-  // Hintergrundkarte
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
   }).addTo(map);
 
+  const lineColor = 'blue';
   const layer10km = L.geoJSON(null, {
     style: { color: lineColor, weight: 4 }
   });
@@ -86,12 +84,13 @@
 
       addStartAndGoalMarkers(data);
       loadAndDrawArrows();
-
-      updateMarkerScale(); // Initial skalieren
+    })
+    .catch(err => {
+      console.error("Fehler beim Laden der 10km.geojson:", err);
     });
 
   function addStartAndGoalMarkers(geojson) {
-    if (!geojson.features?.length) return;
+    if (!geojson.features || geojson.features.length === 0) return;
     const coords = geojson.features[0].geometry.coordinates;
     if (!coords || coords.length < 2) return;
 
@@ -100,44 +99,39 @@
 
     const startIcon = L.divIcon({
       className: 'start-goal-icon',
-      html: `<div class="marker-label" id="start-label">10k</div>`,
       iconAnchor: [15, 15],
+      html: `<div class="marker-label zoom-scale">10k</div>`,
       interactive: false
     });
 
     const goalIcon = L.divIcon({
       className: 'start-goal-icon',
-      html: `<div class="marker-label" id="goal-label">Ziel</div>`,
       iconAnchor: [15, 15],
+      html: `<div class="marker-label zoom-scale">Ziel</div>`,
       interactive: false
     });
 
-    startMarker = L.marker(startLatLng, { icon: startIcon, interactive: false }).addTo(map);
-    goalMarker = L.marker(goalLatLng, { icon: goalIcon, interactive: false }).addTo(map);
+    if (startMarker) map.removeLayer(startMarker);
+    if (goalMarker) map.removeLayer(goalMarker);
+
+    startMarker = L.marker(startLatLng, { icon: startIcon }).addTo(map);
+    goalMarker = L.marker(goalLatLng, { icon: goalIcon }).addTo(map);
 
     startMarker.bringToFront();
     goalMarker.bringToFront();
+
+    updateMarkerScale(); // sofort beim Start
   }
-
-  function updateMarkerScale() {
-    const zoom = map.getZoom();
-    const scale = Math.min(1, (zoom - 12) / 5); // bei Zoom 17 → scale = 1, bei Zoom 12 → scale = 0
-    const clamped = Math.max(scale, 0.6); // nicht zu klein
-
-    const startEl = document.getElementById('start-label');
-    const goalEl = document.getElementById('goal-label');
-
-    if (startEl) startEl.style.transform = `scale(${clamped})`;
-    if (goalEl) goalEl.style.transform = `scale(${clamped})`;
-  }
-
-  map.on('zoomend', updateMarkerScale);
 
   function loadAndDrawArrows() {
     fetch('richtung.geojson')
       .then(res => res.json())
-      .then(drawArrowSymbolsFromGeoJSON)
-      .catch(err => console.error("Fehler beim Laden der richtung.geojson:", err));
+      .then(data => {
+        drawArrowSymbolsFromGeoJSON(data);
+      })
+      .catch(err => {
+        console.error("Fehler beim Laden der richtung.geojson:", err);
+      });
   }
 
   function drawArrowSymbolsFromGeoJSON(geojson) {
@@ -146,7 +140,9 @@
 
       const coords = feature.geometry.coordinates;
       const angleRaw = feature.properties.angle;
-      const angle = (angleRaw + 270) % 360;
+
+      // Korrektur: 0° = Süden → +270 (statt +90)
+      let angle = (angleRaw + 270) % 360;
 
       const latlng = L.latLng(coords[1], coords[0]);
 
@@ -160,9 +156,23 @@
         interactive: false
       });
 
-      L.marker(latlng, { icon: arrowIcon, interactive: false }).addTo(map);
+      L.marker(latlng, { icon: arrowIcon, interactive: false }).addTo(map).bringToFront();
     });
   }
+
+  // Marker-Größe an Zoom anpassen
+  function updateMarkerScale() {
+    const zoom = map.getZoom();
+    const scale = Math.min(1, (zoom - 12) / 5);  // Zwischen Zoom 12–17 → Scale 0.0–1.0
+    const clamped = Math.max(scale, 0.5);        // Mindestgröße 0.5x
+
+    document.querySelectorAll('.zoom-scale').forEach(el => {
+      el.style.transform = `scale(${clamped})`;
+    });
+  }
+
+  // Event: Marker-Größe bei Zoom ändern
+  map.on('zoomend', updateMarkerScale);
 </script>
 
 </body>
