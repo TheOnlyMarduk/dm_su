@@ -21,8 +21,7 @@ function loadAndDrawParking() {
 
         // Marker hinzufügen
         const marker = L.marker(latlng, {
-          icon: parkIcon(),
-          interactive: false
+          icon: parkIcon()
         }).addTo(map);
 
         // Tooltip mit Adresse anzeigen
