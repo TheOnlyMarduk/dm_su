@@ -85,7 +85,7 @@
 
   // GeoJSON-Overlay für die Strecke
   const layer10km = L.geoJSON(null, {
-    style: { color: lineColor, weight: 4 }
+    style: { color: lineColor, weight: 3 }
   });
 
   // Marker-Variablen für Start und Ziel
@@ -201,7 +201,7 @@
   function createArrowIcon(angle) {
     const zoom = map.getZoom();
     const scale = Math.min(1, Math.max(0.6, (zoom - 12) / 6));
-    const size = 20 * scale;
+    const size = 30 * scale;
 
     const arrowHtml = `
       <span class="arrow-symbol" style="transform: rotate(${angle}deg); font-size: ${size}px; color: ${lineColor};">
