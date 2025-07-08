@@ -46,8 +46,12 @@
       background: white;
       border: 2px solid black;
       border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      line-height: 30px;
       text-align: center;
       font-weight: bold;
+      font-size: 14px;
       color: black;
       box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
       user-select: none;
@@ -90,43 +94,37 @@
       console.error("Fehler beim Laden der 10km.geojson:", err);
     });
 
-  let startMarker, goalMarker;
+  function addStartAndGoalMarkers(geojson) {
+    if (!geojson.features || geojson.features.length === 0) return;
+    const coords = geojson.features[0].geometry.coordinates;
+    if (!coords || coords.length < 2) return;
 
-function addStartAndGoalMarkers(geojson) {
-  if (!geojson.features || geojson.features.length === 0) return;
-  const coords = geojson.features[0].geometry.coordinates;
-  if (!coords || coords.length < 2) return;
+    const startLatLng = L.latLng(coords[0][1], coords[0][0]);
+    const goalLatLng = L.latLng(coords[coords.length - 1][1], coords[coords.length - 1][0]);
 
-  const startLatLng = L.latLng(coords[0][1], coords[0][0]);
-  const goalLatLng = L.latLng(coords[coords.length - 1][1], coords[coords.length - 1][0]);
-
-  function createLabelIcon(text, sizePx) {
-    return L.divIcon({
+    const startIcon = L.divIcon({
       className: "start-goal-icon",
-      iconAnchor: [sizePx / 2, sizePx / 2],
-      html: `<div class="marker-label" style="width:${sizePx}px; height:${sizePx}px; line-height:${sizePx}px; font-size:${sizePx * 0.45}px">${text}</div>`,
+      iconAnchor: [15, 15],
+      html: `<div class="marker-label">10k</div>`,
       interactive: false
     });
+
+    const goalIcon = L.divIcon({
+      className: "start-goal-icon",
+      iconAnchor: [15, 15],
+      html: `<div class="marker-label">Ziel</div>`,
+      interactive: false
+    });
+
+    if (startMarker) map.removeLayer(startMarker);
+    if (goalMarker) map.removeLayer(goalMarker);
+
+    startMarker = L.marker(startLatLng, { icon: startIcon }).addTo(map);
+    goalMarker = L.marker(goalLatLng, { icon: goalIcon }).addTo(map);
+
+    startMarker.bringToFront();
+    goalMarker.bringToFront();
   }
-
-  function updateStartZielIcons() {
-    const zoom = map.getZoom();
-    let size = 30;
-    if (zoom < 15) size = 24;
-    if (zoom < 13) size = 20;
-    if (zoom < 11) size = 16;
-
-    if (startMarker) startMarker.setIcon(createLabelIcon('10k', size));
-    if (goalMarker) goalMarker.setIcon(createLabelIcon('Ziel', size));
-  }
-
-  startMarker = L.marker(startLatLng, { icon: createLabelIcon('10k', 30) }).addTo(map);
-  goalMarker = L.marker(goalLatLng, { icon: createLabelIcon('Ziel', 30) }).addTo(map);
-
-  updateStartZielIcons(); // initial
-  map.on('zoomend', updateStartZielIcons);
-}
-
 
   function loadAndDrawArrows() {
     fetch('richtung.geojson')
