@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -7,25 +6,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Leaflet -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
-  />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 
   <style>
-    html,
-    body {
+    html, body {
       margin: 0;
       padding: 0;
       height: 100%;
     }
+
     #map {
       height: 100vh;
       width: 100vw;
     }
 
-    /* Pfeil-Icon */
+    /* Pfeile */
     .arrow-icon {
       font-size: 20px;
       display: flex;
@@ -34,17 +30,21 @@
       width: 20px;
       height: 20px;
       pointer-events: none;
-      /* kein Interaktion */
     }
 
     .arrow-symbol {
       display: inline-block;
       transform-origin: center;
-      color: blue; /* default, wird im JS überschrieben */
+      color: blue;
     }
 
-    /* Start- und Ziel-Icons */
-    .start-icon {
+    /* Start/Ziel-Icons (werden skaliert per Zoom) */
+    .start-goal-icon {
+      pointer-events: none;
+      transition: transform 0.2s ease;
+    }
+
+    .marker-label {
       background: white;
       border: 2px solid black;
       border-radius: 50%;
@@ -53,22 +53,8 @@
       line-height: 30px;
       text-align: center;
       font-weight: bold;
-      color: black;
       font-size: 14px;
-      user-select: none;
-    }
-
-    .ziel-icon {
-     background: white;
-      border: 2px solid black;
-      border-radius: 50%;
-      width: 30px;
-      height: 30px;
-      line-height: 30px;
-      text-align: center;
-      font-weight: bold;
       color: black;
-      font-size: 14px;
       user-select: none;
     }
   </style>
@@ -79,21 +65,19 @@
 
 <script>
   const map = L.map('map');
+  const lineColor = 'blue';
 
   // Hintergrundkarte
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
   }).addTo(map);
 
-  // Linienfarbe
-  const lineColor = 'blue';
-
-  // GeoJSON-Layer vorbereiten
   const layer10km = L.geoJSON(null, {
     style: { color: lineColor, weight: 4 }
   });
 
-  // 10km-Strecke laden und anzeigen
+  let startMarker, goalMarker;
+
   fetch('10km.geojson')
     .then(res => res.json())
     .then(data => {
@@ -102,52 +86,58 @@
 
       addStartAndGoalMarkers(data);
       loadAndDrawArrows();
-    })
-    .catch(err => {
-      console.error("Fehler beim Laden der 10km.geojson:", err);
+
+      updateMarkerScale(); // Initial skalieren
     });
 
-  // Start- und Zielmarker hinzufügen
   function addStartAndGoalMarkers(geojson) {
-    if (!geojson.features || geojson.features.length === 0) return;
-
-    // Annahme: LineString im ersten Feature
+    if (!geojson.features?.length) return;
     const coords = geojson.features[0].geometry.coordinates;
     if (!coords || coords.length < 2) return;
 
-    // Start
     const startLatLng = L.latLng(coords[0][1], coords[0][0]);
-    const startIcon = L.divIcon({
-      className: 'start-icon',
-      html: '10k',
-      iconSize: [30, 30],
-      iconAnchor: [15, 15],
-      interactive: false
-    });
-    L.marker(startLatLng, { icon: startIcon, interactive: false }).addTo(map);
-
-    // Ziel
     const goalLatLng = L.latLng(coords[coords.length - 1][1], coords[coords.length - 1][0]);
-    const zielIcon = L.divIcon({
-      className: 'ziel-icon',
-      html: 'Ziel',
-      iconSize: [30, 30],
+
+    const startIcon = L.divIcon({
+      className: 'start-goal-icon',
+      html: `<div class="marker-label" id="start-label">10k</div>`,
       iconAnchor: [15, 15],
       interactive: false
     });
-    L.marker(goalLatLng, { icon: zielIcon, interactive: false }).addTo(map);
+
+    const goalIcon = L.divIcon({
+      className: 'start-goal-icon',
+      html: `<div class="marker-label" id="goal-label">Ziel</div>`,
+      iconAnchor: [15, 15],
+      interactive: false
+    });
+
+    startMarker = L.marker(startLatLng, { icon: startIcon, interactive: false }).addTo(map);
+    goalMarker = L.marker(goalLatLng, { icon: goalIcon, interactive: false }).addTo(map);
+
+    startMarker.bringToFront();
+    goalMarker.bringToFront();
   }
 
-  // Pfeile aus Richtung-GeoJSON laden und anzeigen
+  function updateMarkerScale() {
+    const zoom = map.getZoom();
+    const scale = Math.min(1, (zoom - 12) / 5); // bei Zoom 17 → scale = 1, bei Zoom 12 → scale = 0
+    const clamped = Math.max(scale, 0.6); // nicht zu klein
+
+    const startEl = document.getElementById('start-label');
+    const goalEl = document.getElementById('goal-label');
+
+    if (startEl) startEl.style.transform = `scale(${clamped})`;
+    if (goalEl) goalEl.style.transform = `scale(${clamped})`;
+  }
+
+  map.on('zoomend', updateMarkerScale);
+
   function loadAndDrawArrows() {
     fetch('richtung.geojson')
       .then(res => res.json())
-      .then(data => {
-        drawArrowSymbolsFromGeoJSON(data);
-      })
-      .catch(err => {
-        console.error("Fehler beim Laden der richtung.geojson:", err);
-      });
+      .then(drawArrowSymbolsFromGeoJSON)
+      .catch(err => console.error("Fehler beim Laden der richtung.geojson:", err));
   }
 
   function drawArrowSymbolsFromGeoJSON(geojson) {
@@ -156,9 +146,7 @@
 
       const coords = feature.geometry.coordinates;
       const angleRaw = feature.properties.angle;
-
-      // Korrektur: 0° = Süden, daher +90 und modulo 360
-      let angle = (angleRaw + 270) % 360;
+      const angle = (angleRaw + 270) % 360;
 
       const latlng = L.latLng(coords[1], coords[0]);
 
