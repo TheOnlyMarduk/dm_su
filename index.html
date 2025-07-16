@@ -70,7 +70,10 @@
 <script>
   // Initialisiere Karte
   const map = L.map('map');
-
+  
+ // Parkplatz-Layer separat halten für Sichtbarkeit
+ const parkingLayer = L.layerGroup().addTo(map);
+  
   // Hintergrundlayer von OpenStreetMap hinzufügen
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap'
@@ -183,45 +186,47 @@
 
   // Parkplätze aus parken.geojson laden und darstellen
   function loadAndDrawParking() {
-    fetch('parken.geojson')
-      .then(res => res.json())
-      .then(data => {
-        data.features.forEach(feature => {
-          if (!feature.geometry || feature.geometry.type !== 'Point') return;
+  fetch('parken.geojson')
+    .then(res => res.json())
+    .then(data => {
+      data.features.forEach(feature => {
+        if (!feature.geometry || feature.geometry.type !== 'Point') return;
 
-          const coords = feature.geometry.coordinates;
-          const latlng = L.latLng(coords[1], coords[0]);
+        const coords = feature.geometry.coordinates;
+        const latlng = L.latLng(coords[1], coords[0]);
+        const adresse = feature.properties.adresse || "Parkplatz";
 
-          // Tooltip-Adresse aus properties.adresse
-          const adresse = feature.properties.adresse || "Parkplatz";
+        const iconSize = 30;
 
-          const parkIcon = () => L.divIcon({
-            className: "start-goal-icon",
-            iconAnchor: [15, 15],
-            html: createScaledMarkerLabel("P", 30),
-            interactive: false
-          });
-
-          const marker = L.marker(latlng, {
-            icon: parkIcon()
-          }).addTo(map);
-
-          // Tooltip anzeigen mit Adresse aus GeoJSON
-          marker.bindTooltip(adresse, {
-            permanent: false,
-            direction: 'top'
-          });
-
-          // Bei Zoom neu skalieren
-          map.on('zoomend', () => {
-            marker.setIcon(parkIcon());
-          });
+        const vz314Icon = L.icon({
+          iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/21/Zeichen_314-50_-_Parkplatz%2C_StVO_2017.svg/40px-Zeichen_314-50_-_Parkplatz%2C_StVO_2017.svg.png',
+          iconSize: [iconSize, iconSize],
+          iconAnchor: [iconSize / 2, iconSize / 2],
+          tooltipAnchor: [0, -iconSize / 2]
         });
-      })
-      .catch(err => {
-        console.error("Fehler beim Laden der parken.geojson:", err);
+
+        const marker = L.marker(latlng, {
+          icon: vz314Icon
+        }).addTo(parkingLayer);
+
+        marker.bindTooltip(adresse, {
+          permanent: false,
+          direction: 'top'
+        });
       });
+    })
+    .catch(err => {
+      console.error("Fehler beim Laden der parken.geojson:", err);
+    });
+}
+document.getElementById('toggleParking').addEventListener('change', (e) => {
+  if (e.target.checked) {
+    map.addLayer(parkingLayer);
+  } else {
+    map.removeLayer(parkingLayer);
   }
+});
+
 </script>
 
 </body>
