@@ -311,6 +311,7 @@ fetch('5km.geojson')
     addStartAndGoalMarkers5km(data);
     loadAndDrawArrows('5km_richtung.geojson', 'red', layer5km);
     loadKilometerPoints('5km_kilometer.geojson', 'red', layer5km, true); // true für 5km
+    layer5km.addTo(map);
     // Nicht automatisch hinzufügen (Layer standardmäßig aus)
   })
   .catch(err => console.error("Fehler beim Laden der 5km.geojson:", err));
