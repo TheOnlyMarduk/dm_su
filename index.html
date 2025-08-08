@@ -15,12 +15,10 @@
     padding: 0;
     height: 100%;
   }
-
   #map {
     height: 100vh;
     width: 100vw;
   }
-
   .arrow-icon {
     font-size: 20px;
     display: flex;
@@ -30,12 +28,10 @@
     height: 20px;
     pointer-events: none;
   }
-
   .arrow-symbol {
     display: inline-block;
     transform-origin: center;
   }
-
   .marker-label {
     background: white;
     border: 2px solid black;
@@ -49,7 +45,6 @@
     align-items: center;
     justify-content: center;
   }
-
   .km-label {
     background: yellow;
     border: 1px solid black;
@@ -290,6 +285,30 @@ function loadAndDrawParking() {
    Daten laden & alles zusammenfügen
 ====================== */
 
+const overlays = {
+  "10 km Strecke (2 Runden)": layer10km,
+  "5 km Strecke": layer5km,
+  "Parkplätze": parkingLayer
+};
+
+const layerControl = L.control.layers(null, overlays, { collapsed: false }).addTo(map);
+
+map.on('overlayadd', function(e) {
+  // Wenn ein Layer eingeschaltet wird, schalte alle anderen Overlay-Layer aus
+  Object.values(overlays).forEach(layer => {
+    if (layer !== e.layer && map.hasLayer(layer)) {
+      map.removeLayer(layer);
+    }
+  });
+});
+
+// Standardmäßig 10km Layer an
+layer10km.addTo(map);
+
+/* ======================
+   GeoJSON laden
+====================== */
+
 // 10km laden
 fetch('10km.geojson')
   .then(res => res.json())
@@ -298,35 +317,24 @@ fetch('10km.geojson')
     map.fitBounds(L.geoJSON(data).getBounds(), { padding: [20, 20] });
     addStartAndGoalMarkers10km(data);
     loadAndDrawArrows('richtung.geojson', 'blue', layer10km);
-    loadKilometerPoints('10km_kilometer.geojson', 'red', layer10km, false);
-    layer10km.addTo(map); // Standardmäßig an
+    loadKilometerPoints('10km_kilometer.geojson', 'blue', layer10km, false);
   })
   .catch(err => console.error("Fehler beim Laden der 10km.geojson:", err));
 
-// 5km laden (erst aus)
+// 5km laden (zunächst Layer nicht aktiv)
 fetch('5km.geojson')
   .then(res => res.json())
   .then(data => {
     L.geoJSON(data, { style: { color: 'red', weight: 4 } }).addTo(layer5km);
     addStartAndGoalMarkers5km(data);
     loadAndDrawArrows('5km_richtung.geojson', 'red', layer5km);
-    loadKilometerPoints('5km_kilometer.geojson', 'red', layer5km, true); // true für 5km
-    // Nicht automatisch hinzufügen (Layer standardmäßig aus)
+    loadKilometerPoints('5km_kilometer.geojson', 'red', layer5km, true);
   })
   .catch(err => console.error("Fehler beim Laden der 5km.geojson:", err));
 
 // Parkplätze laden
 loadAndDrawParking();
 
-/* ======================
-   Layer-Kontrolle / Legende
-====================== */
-const overlays = {
-  "10 km Strecke (2 Runden)": layer10km,
-  "5 km Strecke": layer5km,
-  "Parkplätze": parkingLayer
-};
-L.control.layers(null, overlays, { collapsed: false }).addTo(map);
 </script>
 
 </body>
