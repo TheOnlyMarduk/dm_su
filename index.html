@@ -141,7 +141,7 @@ function addStartAndGoalMarkers10km(geojson) {
 ====================== */
 function addStartAndGoalMarkers5km(geojson) {
   if (!geojson.features || geojson.features.length === 0) return;
-  const coords = geojson.features[0].geometry.coordinates;
+  const coords = geojson.features[1].geometry.coordinates;
 
   const startLatLng = L.latLng(coords[0][1], coords[0][0]);
   const goalLatLng = L.latLng(coords[coords.length - 1][1], coords[coords.length - 1][0]);
