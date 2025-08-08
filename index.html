@@ -13,6 +13,7 @@
     html, body { margin: 0; padding: 0; height: 100%; }
     #map { height: 100vh; width: 100vw; }
 
+    /* Pfeil-Symbole für Laufrichtung */
     .arrow-icon {
       font-size: 20px;
       display: flex;
@@ -23,22 +24,39 @@
       pointer-events: none;
     }
     .arrow-symbol { display: inline-block; transform-origin: center; color: blue; }
+
+    /* Marker für Start/Ziel/Parkplätze */
     .start-goal-icon { pointer-events: none; }
     .marker-label {
       background: white;
       border: 2px solid black;
       border-radius: 50%;
-      line-height: 1;
-      text-align: center;
       font-weight: bold;
-      font-size: 14px;
       color: black;
-      box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
-      user-select: none;
-      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+      user-select: none;
+    }
+
+    /* Kilometerpunkte: kleiner roter Kreis */
+    .km-point {
+      width: 8px;
+      height: 8px;
+      background: red;
+      border-radius: 50%;
+      border: 1px solid black;
+    }
+
+    /* Kilometer-Label: gelber Kasten */
+    .km-label {
+      background: yellow;
+      border: 1px solid black;
+      color: black;
+      font-size: 12px;
+      padding: 2px 4px;
+      white-space: nowrap;
     }
   </style>
 </head>
@@ -57,28 +75,14 @@
   const lineColor = 'blue';
 
   // Layer-Gruppen
-  const layer10km = L.geoJSON(null, { style: { color: lineColor, weight: 4 } });
-  const layerArrows = L.layerGroup(); // Richtungspfeile separat
-  const layerParking = L.layerGroup(); // Parkplätze
+  const layer10km = L.geoJSON(null, { style: { color: lineColor, weight: 4 } }); // Strecke
+  const layerArrows = L.layerGroup();   // Pfeile
+  const layerKilometer = L.layerGroup(); // Kilometerpunkte
+  const layerParking = L.layerGroup();   // Parkplätze
 
   let startMarker, goalMarker;
 
-  // GEOJSON laden
-  fetch('10km.geojson')
-    .then(res => res.json())
-    .then(data => {
-      layer10km.addData(data);
-      map.fitBounds(layer10km.getBounds(), { padding: [20, 20] });
-
-      addStartAndGoalMarkers(data);
-      loadAndDrawArrows();
-    });
-
-  fetch('parken.geojson')
-    .then(res => res.json())
-    .then(data => drawParking(data));
-
-  // Start/Ziel
+  // Hilfsfunktion: Label-Größe skalieren
   function createScaledMarkerLabel(text, baseSize) {
     const zoom = map.getZoom();
     const scale = Math.min(1, Math.max(0.6, (zoom - 12) / 6));
@@ -86,6 +90,7 @@
     return `<div class="marker-label" style="width:${size}px; height:${size}px; font-size:${size * 0.45}px;">${text}</div>`;
   }
 
+  // Start & Ziel Marker hinzufügen
   function addStartAndGoalMarkers(geojson) {
     const coords = geojson.features[0].geometry.coordinates;
     const startLatLng = L.latLng(coords[0][1], coords[0][0]);
@@ -97,19 +102,20 @@
     startMarker = L.marker(startLatLng, { icon: startIcon(), interactive: false }).addTo(layer10km);
     goalMarker = L.marker(goalLatLng, { icon: goalIcon(), interactive: false }).addTo(layer10km);
 
+    // Beim Zoomen Größe anpassen
     map.on('zoomend', () => {
       startMarker.setIcon(startIcon());
       goalMarker.setIcon(goalIcon());
     });
   }
 
-  // Richtungspfeile
+  // Richtungspfeile laden
   function loadAndDrawArrows() {
     fetch('richtung.geojson')
       .then(res => res.json())
       .then(data => {
         data.features.forEach(feature => {
-          if (!feature.geometry || feature.geometry.type !== 'Point') return;
+          if (feature.geometry.type !== 'Point') return;
           const coords = feature.geometry.coordinates;
           const angle = (feature.properties.angle + 270) % 360;
           const latlng = L.latLng(coords[1], coords[0]);
@@ -120,10 +126,31 @@
       });
   }
 
-  // Parkplätze
+  // Kilometerpunkte laden
+  function loadAndDrawKilometer() {
+    fetch('10km_kilometer.geojson')
+      .then(res => res.json())
+      .then(data => {
+        data.features.forEach(feature => {
+          if (feature.geometry.type !== 'Point') return;
+          const coords = feature.geometry.coordinates;
+          const kmText = feature.properties.kilometer || "";
+
+          // Kleiner roter Punkt
+          const pointIcon = L.divIcon({ className: 'km-point', iconSize: [8, 8], iconAnchor: [4, 4] });
+          L.marker([coords[1], coords[0]], { icon: pointIcon, interactive: false }).addTo(layerKilometer);
+
+          // Gelber Kasten mit Kilometerzahl leicht versetzt
+          const labelIcon = L.divIcon({ className: 'km-label', html: kmText, iconAnchor: [-5, 12] });
+          L.marker([coords[1], coords[0]], { icon: labelIcon, interactive: false }).addTo(layerKilometer);
+        });
+      });
+  }
+
+  // Parkplätze laden
   function drawParking(geojson) {
     geojson.features.forEach(feature => {
-      if (!feature.geometry || feature.geometry.type !== 'Point') return;
+      if (feature.geometry.type !== 'Point') return;
       const coords = feature.geometry.coordinates;
       const adresse = feature.properties.adresse || "Parkplatz";
       const parkIcon = () => L.divIcon({ className: "start-goal-icon", iconAnchor: [15, 15], html: createScaledMarkerLabel("P", 30) });
@@ -132,10 +159,25 @@
     });
   }
 
-  // Legend / Layer Control
-  const combined10km = L.layerGroup([layer10km, layerArrows]);
+  // GeoJSON-Dateien laden
+  fetch('10km.geojson')
+    .then(res => res.json())
+    .then(data => {
+      layer10km.addData(data);
+      map.fitBounds(layer10km.getBounds(), { padding: [20, 20] });
+      addStartAndGoalMarkers(data);
+      loadAndDrawArrows();
+      loadAndDrawKilometer(); // Kilometerpunkte laden
+    });
+
+  fetch('parken.geojson')
+    .then(res => res.json())
+    .then(data => drawParking(data));
+
+  // Layer-Control: 10 km kombiniert mit Pfeilen & Kilometern
+  const combined10km = L.layerGroup([layer10km, layerArrows, layerKilometer]);
   const overlayMaps = {
-    "10 km-Strecke (2 Runden)": combined10km,
+    "10 km-Strecke": combined10km,
     "Parkplätze": layerParking
   };
   L.control.layers(null, overlayMaps).addTo(map);
