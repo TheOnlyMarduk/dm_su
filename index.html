@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="utf-8" />
-<title>5 km & 10 km Laufstrecken</title>
+<title>10 km Laufstrecke</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
 <!-- Leaflet CSS & JS -->
@@ -15,6 +15,7 @@
     padding: 0;
     height: 100%;
   }
+
   #map {
     height: 100vh;
     width: 100vw;
@@ -30,12 +31,14 @@
     height: 20px;
     pointer-events: none;
   }
+
   .arrow-symbol {
     display: inline-block;
     transform-origin: center;
+    color: blue;
   }
 
-  /* Runde Marker (Start, Ziel, Parkplatz) */
+  /* Runde Marker-Labels (Start, Ziel, Parkplatz) */
   .marker-label {
     background: white;
     border: 2px solid black;
@@ -47,6 +50,8 @@
     color: black;
     box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
     user-select: none;
+    position: relative;
+    z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -82,54 +87,72 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '© OpenStreetMap'
 }).addTo(map);
 
+const lineColor = 'blue';
+
 /* ======================
    Layer definieren
 ====================== */
-// 10 km
-const layer10km = L.geoJSON(null, { style: { color: 'blue', weight: 4 } });
-const kmLayer10 = L.layerGroup();
-const arrowLayer10 = L.layerGroup();
-const startGoalLayer10 = L.layerGroup();
+const layer10km = L.layerGroup(); // Enthält Strecke, Pfeile & Kilometerpunkte
+const parkingLayer = L.layerGroup();  // Parkplätze
 
-// 5 km
-const layer5km = L.geoJSON(null, { style: { color: 'red', weight: 4 } });
-const kmLayer5 = L.layerGroup();
-const arrowLayer5 = L.layerGroup();
-const startGoalLayer5 = L.layerGroup();
-
-// Parkplätze
-const parkingLayer = L.layerGroup().addTo(map);
+let startMarker, goalMarker;
 
 /* ======================
-   Hilfsfunktion Markerlabel skalieren
+   Hauptdaten laden
+====================== */
+fetch('10km.geojson')
+  .then(res => res.json())
+  .then(data => {
+    L.geoJSON(data, { style: { color: lineColor, weight: 4 } }).addTo(layer10km);
+    map.fitBounds(L.geoJSON(data).getBounds(), { padding: [20, 20] });
+
+    addStartAndGoalMarkers(data);
+    loadAndDrawArrows();
+    loadKilometerPoints();
+    loadAndDrawParking();
+
+    layer10km.addTo(map);
+  })
+  .catch(err => console.error("Fehler beim Laden der 10km.geojson:", err));
+
+/* ======================
+   Markerlabel skalieren
 ====================== */
 function createScaledMarkerLabel(text, baseSize) {
   const zoom = map.getZoom();
   const scale = Math.min(1, Math.max(0.6, (zoom - 12) / 6));
   const size = baseSize * scale;
-  return `<div class="marker-label" style="width:${size}px;height:${size}px;font-size:${size * 0.45}px;">${text}</div>`;
+  return `
+    <div class="marker-label" style="width:${size}px; height:${size}px; font-size:${size * 0.45}px;">
+      ${text}
+    </div>
+  `;
 }
 
 /* ======================
-   Start- und Zielmarker erzeugen und in Layer packen
+   Start- und Zielmarker
 ====================== */
-function addStartAndGoalMarkers(geojson, textStart, textZiel, targetLayerGroup) {
+function addStartAndGoalMarkers(geojson) {
   if (!geojson.features || geojson.features.length === 0) return;
   const coords = geojson.features[0].geometry.coordinates;
+
   const startLatLng = L.latLng(coords[0][1], coords[0][0]);
   const goalLatLng = L.latLng(coords[coords.length - 1][1], coords[coords.length - 1][0]);
 
   const startIcon = () => L.divIcon({
+    className: "start-goal-icon",
     iconAnchor: [15, 15],
-    html: createScaledMarkerLabel(textStart, 30)
-  });
-  const goalIcon = () => L.divIcon({
-    iconAnchor: [15, 15],
-    html: createScaledMarkerLabel(textZiel, 30)
+    html: createScaledMarkerLabel("10k", 30)
   });
 
-  const startMarker = L.marker(startLatLng, { icon: startIcon() }).addTo(targetLayerGroup);
-  const goalMarker = L.marker(goalLatLng, { icon: goalIcon() }).addTo(targetLayerGroup);
+  const goalIcon = () => L.divIcon({
+    className: "start-goal-icon",
+    iconAnchor: [15, 15],
+    html: createScaledMarkerLabel("Ziel", 30)
+  });
+
+  startMarker = L.marker(startLatLng, { icon: startIcon() }).addTo(map);
+  goalMarker = L.marker(goalLatLng, { icon: goalIcon() }).addTo(map);
 
   map.on('zoomend', () => {
     startMarker.setIcon(startIcon());
@@ -138,19 +161,19 @@ function addStartAndGoalMarkers(geojson, textStart, textZiel, targetLayerGroup) 
 }
 
 /* ======================
-   Richtungspfeile laden und in Layer packen
+   Richtungspfeile (Teil der 10km-Strecke)
 ====================== */
-function loadAndDrawArrows(url, color, targetLayerGroup) {
-  fetch(url)
+function loadAndDrawArrows() {
+  fetch('richtung.geojson')
     .then(res => res.json())
     .then(data => {
-      data.features.forEach(f => {
-        if (!f.geometry || f.geometry.type !== 'Point') return;
-        const coords = f.geometry.coordinates;
-        const angle = (f.properties.angle + 270) % 360;
+      data.features.forEach(feature => {
+        if (!feature.geometry || feature.geometry.type !== 'Point') return;
+        const coords = feature.geometry.coordinates;
+        const angle = (feature.properties.angle + 270) % 360;
         const latlng = L.latLng(coords[1], coords[0]);
 
-        const arrowHtml = `<span class="arrow-symbol" style="transform: rotate(${angle}deg); color: ${color};">➤</span>`;
+        const arrowHtml = `<span class="arrow-symbol" style="transform: rotate(${angle}deg); color: ${lineColor};">➤</span>`;
         const arrowIcon = L.divIcon({
           className: 'arrow-icon',
           html: arrowHtml,
@@ -158,124 +181,99 @@ function loadAndDrawArrows(url, color, targetLayerGroup) {
           iconAnchor: [10, 10]
         });
 
-        L.marker(latlng, { icon: arrowIcon }).addTo(targetLayerGroup);
+        L.marker(latlng, { icon: arrowIcon }).addTo(layer10km);
       });
-    });
+    })
+    .catch(err => console.error("Fehler beim Laden der richtung.geojson:", err));
 }
 
 /* ======================
-   Kilometerpunkte laden und in Layer packen
+   Kilometerpunkte (über den Pfeilen)
 ====================== */
-function loadKilometerPoints(url, kmLayer) {
-  fetch(url)
+function loadKilometerPoints() {
+  fetch('10km_kilometer.geojson')
     .then(res => res.json())
     .then(data => {
-      data.features.forEach(f => {
-        if (!f.geometry || f.geometry.type !== 'Point') return;
-        const coords = f.geometry.coordinates;
+      data.features.forEach(feature => {
+        if (!feature.geometry || feature.geometry.type !== 'Point') return;
+        const coords = feature.geometry.coordinates;
         const latlng = L.latLng(coords[1], coords[0]);
-        const km = f.properties.kilometer;
+        const km = feature.properties.kilometer;
 
-        // Verschiebung pro Kilometer (hier beispielhaft, ggf anpassen)
+        // Pixel-Offsets pro Kilometer
         let anchor;
-        if (km === 1) anchor = [7, -10];
-        if (km === 2) anchor = [35, 5];
-        if (km === 3) anchor = [-5, 25];
-        if (km === 4) anchor = [0, 25];
-        if (km === 5) anchor = [7, -10];
-        if (km === 6) anchor = [35, 5];
-        if (km === 7) anchor = [5, -10];
-        if (km === 8) anchor = [5, 28];
-        if (km === 9) anchor = [35, 5];
+        if (km === 1) anchor = [8, -15];
+        if (km === 2) anchor = [38, 8];
+        if (km === 3) anchor = [0, 32];
+        if (km === 4) anchor = [0, 32];
+        if (km === 5) anchor = [8, -15];
+        if (km === 6) anchor = [38, 8];
+        if (km === 7) anchor = [8, -15];
+        if (km === 8) anchor = [5, 35];
+        if (km === 9) anchor = [38, 8];
 
-        // Roter Punkt für Kilometer
+        // Roter Punkt
         L.circleMarker(latlng, {
           radius: 5,
           color: 'red',
           fillColor: 'red',
           fillOpacity: 1
-        }).addTo(kmLayer);
+        }).addTo(layer10km);
 
-        // Gelber Kasten mit Kilometerzahl
+        // Gelber Kasten mit mittiger Zahl
         const labelIcon = L.divIcon({
           className: 'km-label',
-          html: km,
+          html: `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">${km}</div>`,
           iconAnchor: anchor
         });
-        L.marker(latlng, { icon: labelIcon }).addTo(kmLayer);
+
+        L.marker(latlng, { icon: labelIcon }).addTo(layer10km);
       });
-      kmLayer.bringToFront();
-    });
+
+      layer10km.bringToFront(); // Kilometer über Pfeile
+    })
+    .catch(err => console.error("Fehler beim Laden der 10km_kilometer.geojson:", err));
 }
 
 /* ======================
-   Parkplätze laden
+   Parkplätze
 ====================== */
 function loadAndDrawParking() {
   fetch('parken.geojson')
     .then(res => res.json())
     .then(data => {
-      data.features.forEach(f => {
-        if (!f.geometry || f.geometry.type !== 'Point') return;
-        const coords = f.geometry.coordinates;
+      data.features.forEach(feature => {
+        if (!feature.geometry || feature.geometry.type !== 'Point') return;
+        const coords = feature.geometry.coordinates;
         const latlng = L.latLng(coords[1], coords[0]);
-        const adresse = f.properties.adresse || "Parkplatz";
+        const adresse = feature.properties.adresse || "Parkplatz";
+
         const parkIcon = () => L.divIcon({
+          className: "start-goal-icon",
           iconAnchor: [15, 15],
           html: createScaledMarkerLabel("P", 30)
         });
+
         const marker = L.marker(latlng, { icon: parkIcon() }).addTo(parkingLayer);
-        marker.bindTooltip(adresse, { direction: 'top' });
+        marker.bindTooltip(adresse, { permanent: false, direction: 'top' });
+
         map.on('zoomend', () => marker.setIcon(parkIcon()));
       });
-    });
+
+      parkingLayer.addTo(map);
+    })
+    .catch(err => console.error("Fehler beim Laden der parken.geojson:", err));
 }
 
 /* ======================
-   Daten laden und Layer füllen
+   Legende (ohne Kilometerpunkte)
 ====================== */
-// 10 km
-fetch('10km.geojson')
-  .then(res => res.json())
-  .then(data => {
-    layer10km.addData(data);
-    addStartAndGoalMarkers(data, "10k", "Ziel", startGoalLayer10);
-    loadAndDrawArrows('10km_richtung.geojson', 'blue', arrowLayer10);
-    loadKilometerPoints('10km_kilometer.geojson', kmLayer10);
-    // Karte auf 10km Strecke zoomen (erst wenn geladen)
-    map.fitBounds(layer10km.getBounds());
-  });
+const overlays = {
+  "10 km Strecke": layer10km,
+  "Parkplätze": parkingLayer
+};
+L.control.layers(null, overlays, { collapsed: false }).addTo(map);
+</script>
 
-// 5 km
-fetch('5km.geojson')
-  .then(res => res.json())
-  .then(data => {
-    layer5km.addData(data);
-    addStartAndGoalMarkers(data, "5k", "Ziel", startGoalLayer5);
-    loadAndDrawArrows('5km_richtung.geojson', 'red', arrowLayer5);
-    loadKilometerPoints('5km_kilometer.geojson', kmLayer5);
-  });
-
-// Parkplätze
-loadAndDrawParking();
-
-/* ======================
-   Layer-Gruppen zusammenfassen und dem Map hinzufügen mit default Sichtbarkeit
-====================== */
-// 10km Layer-Gruppe komplett
-const group10km = L.layerGroup([
-  layer10km,
-  arrowLayer10,
-  kmLayer10,
-  startGoalLayer10
-]).addTo(map);  // direkt hinzugefügt = sichtbar
-
-// 5km Layer-Gruppe komplett
-const group5km = L.layerGroup([
-  layer5km,
-  arrowLayer5,
-  kmLayer5,
-  startGoalLayer5
-]);  // NICHT hinzugefügt = unsichtbar
-
-/*
+</body>
+</html>
