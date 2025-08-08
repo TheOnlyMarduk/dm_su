@@ -140,12 +140,31 @@ function addStartAndGoalMarkers10km(geojson) {
    Start- und Zielmarker 5km
 ====================== */
 function addStartAndGoalMarkers5km(geojson) {
-  if (!geojson.features || geojson.features.length === 0) return;
+  console.log('addStartAndGoalMarkers5km aufgerufen');
+  console.log('GeoJSON:', geojson);
+
+  if (!geojson.features || geojson.features.length === 0) {
+    console.warn('Keine Features im GeoJSON');
+    return;
+  }
+
+  console.log('Erstes Feature:', geojson.features[0]);
+  console.log('Koordinaten:', geojson.features[0].geometry.coordinates);
+
   const coords = geojson.features[0].geometry.coordinates;
+
+  if (!coords || coords.length === 0) {
+    console.warn('Keine Koordinaten gefunden');
+    return;
+  }
 
   const startLatLng = L.latLng(coords[0][1], coords[0][0]);
   const goalLatLng = L.latLng(coords[coords.length - 1][1], coords[coords.length - 1][0]);
 
+  console.log('Startpunkt:', startLatLng);
+  console.log('Zielpunkt:', goalLatLng);
+
+  // Rest wie gehabt
   const startIcon5km = () => L.divIcon({
     className: "start-goal-icon",
     iconAnchor: [15, 15],
@@ -166,6 +185,7 @@ function addStartAndGoalMarkers5km(geojson) {
     if (goalMarker5km) goalMarker5km.setIcon(goalIcon5km());
   });
 }
+
 
 /* ======================
    Richtungspfeile generisch
@@ -309,8 +329,6 @@ fetch('5km.geojson')
   .then(data => {
     L.geoJSON(data, { style: { color: 'red', weight: 4 } }).addTo(layer5km);
     addStartAndGoalMarkers5km(data);
-    console.log('5km Start:', startLatLng);
-console.log('5km Ziel:', goalLatLng);
     loadAndDrawArrows('5km_richtung.geojson', 'red', layer5km);
     loadKilometerPoints('5km_kilometer.geojson', 'red', layer5km, true); // true für 5km
     // Nicht automatisch hinzufügen (Layer standardmäßig aus)
