@@ -249,16 +249,16 @@
             .addTo(layerKilometer);
 
           // Gelbes Label
-          let iconAnchor = [12, -2]; // Standard unterhalb
+          let iconAnchor = [12, -6]; // Standard unterhalb
           if (["1", "5", "7"].includes(kmText)) {
             // Unterhalb
             iconAnchor = [12, -2];
           } else if (["9", "6", "2"].includes(kmText)) {
             // Links
-            iconAnchor = [2, 6];
+            iconAnchor = [-8, 6];
           } else if (["4", "8", "3"].includes(kmText)) {
             // Oberhalb
-            iconAnchor = [12, 20];
+            iconAnchor = [12, 28];
           }
 
           const labelIcon = L.divIcon({
