@@ -27,11 +27,15 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:
 const layer10km = L.layerGroup();
 const layer5km = L.layerGroup();
 const layerSchuelerlauf = L.layerGroup();
+const layerKinderlauf = L.layerGroup();
+const layerBambinilauf = L.layerGroup();
 const parkingLayer = L.layerGroup();
 
 let startMarker10km, goalMarker10km;
 let startMarker5km, goalMarker5km;
 let startMarkerSchueler, goalMarkerSchueler;
+let startMarkerKinderlauf, goalMarkerKinderlauf;
+let startMarkerBambinilauf, goalMarkerBambinilauf;
 
 function createScaledMarkerLabel(text, baseSize, color = 'black') {
   const zoom = map.getZoom();
@@ -160,12 +164,32 @@ fetch('schuelerlauf.geojson')
     loadKilometerPoints('schueler_kilometer.geojson', 'green', layerSchuelerlauf, "schueler");
   });
 
+// Kinderlauf (gelb) - wie 10km, aber ohne Kilometerpunkte
+fetch('kinderlauf.geojson')
+  .then(res => res.json())
+  .then(data => {
+    L.geoJSON(data, { style: { color: 'yellow', weight: 4 } }).addTo(layerKinderlauf);
+    addStartAndGoalMarkers(data, 'yellow', 'K', layerKinderlauf, { start: startMarkerKinderlauf, goal: goalMarkerKinderlauf });
+    loadAndDrawArrows('kinder_richtung.geojson', 'yellow', layerKinderlauf);
+  });
+
+// Bambinilauf (schwarz) - wie 10km, aber ohne Kilometerpunkte
+fetch('bambinilauf.geojson')
+  .then(res => res.json())
+  .then(data => {
+    L.geoJSON(data, { style: { color: 'black', weight: 4 } }).addTo(layerBambinilauf);
+    addStartAndGoalMarkers(data, 'black', 'B', layerBambinilauf, { start: startMarkerBambinilauf, goal: goalMarkerBambinilauf });
+    loadAndDrawArrows('bambini_richtung.geojson', 'black', layerBambinilauf);
+  });
+
 loadAndDrawParking();
 
 const overlays = {
   "10 km DM und Citylauf (2 Runden)": layer10km,
   "5 km Citylauf": layer5km,
   "3,6 km KSK Köln - Schülerlauf (U14/U16)": layerSchuelerlauf,
+  "1,2 km KSK Köln - Kinderlauf (U10/U12)": layerKinderlauf,
+  "0,6 km KSK Köln - Bambinilauf (U8)": layerBambinilauf,
   "Parkplätze": parkingLayer
 };
 
