@@ -87,7 +87,7 @@ function loadKilometerPoints(geojsonUrl, color, targetLayer, mode = "10km") {
 
         const anchor10km = { 1:[7,-15], 2:[40,5], 3:[-5,35], 4:[0,35], 5:[7,-15], 6:[40,5], 7:[5,-15], 8:[5,38], 9:[40,5] };
         const map5to10 = { 1:6, 2:7, 3:8, 4:9, 5:5 };
-        const anchorSchueler = { 1:[10,-20], 2:[0,35], 3:[0,35], 4:[0,35] }; // eigene Werte
+        const anchorSchueler = { 1:[10,-20], 2:[0,35], 3:[10,35] }; // eigene Werte
         const mapSchueler = {}; // falls Mapping nötig, hier definieren
 
         let anchor;
@@ -163,9 +163,9 @@ fetch('schuelerlauf.geojson')
 loadAndDrawParking();
 
 const overlays = {
-  "10 km Strecke": layer10km,
-  "5 km Strecke": layer5km,
-  "Schülerlauf": layerSchuelerlauf,
+  "10 km DM und Citylauf (2 Runden)": layer10km,
+  "5 km Citylauf": layer5km,
+  "KSK Köln - Schülerlauf (U14/U16)": layerSchuelerlauf,
   "Parkplätze": parkingLayer
 };
 
