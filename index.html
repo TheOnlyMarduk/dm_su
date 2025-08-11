@@ -133,7 +133,7 @@ function loadAndDrawParking() {
         const adresse = feature.properties.adresse || "Parkplatz";
         const parkIcon = () => L.divIcon({ className: "start-goal-icon", iconAnchor: [15,15], html: createScaledMarkerLabel("P", 30) });
         const marker = L.marker(latlng, { icon: parkIcon() }).addTo(parkingLayer);
-        marker.bindTooltip(adresse, { permanent: false, direction: 'top' });
+        marker.bindTooltip(adresse.replace(/\n/g, '<br>'), { permanent: false, direction: 'top', opacity: 0.9, sticky: true, interactive: true });
         map.on('zoomend', () => marker.setIcon(parkIcon()));
       });
       parkingLayer.addTo(map);
