@@ -164,13 +164,13 @@ fetch('schuelerlauf.geojson')
     loadKilometerPoints('schueler_kilometer.geojson', 'green', layerSchuelerlauf, "schueler");
   });
 
-// Kinderlauf (orange) - wie 10km, aber ohne Kilometerpunkte
+// Kinderlauf (braun) - wie 10km, aber ohne Kilometerpunkte
 fetch('kinderlauf.geojson')
   .then(res => res.json())
   .then(data => {
-    L.geoJSON(data, { style: { color: 'orange', weight: 4 } }).addTo(layerKinderlauf);
-    addStartAndGoalMarkers(data, 'orange', 'K', layerKinderlauf, { start: startMarkerKinderlauf, goal: goalMarkerKinderlauf });
-    loadAndDrawArrows('kinder_richtung.geojson', 'orange', layerKinderlauf);
+    L.geoJSON(data, { style: { color: 'brown', weight: 4 } }).addTo(layerKinderlauf);
+    addStartAndGoalMarkers(data, 'brown', 'K', layerKinderlauf, { start: startMarkerKinderlauf, goal: goalMarkerKinderlauf });
+    loadAndDrawArrows('kinder_richtung.geojson', 'brown', layerKinderlauf);
   });
 
 // Bambinilauf (schwarz) - wie 10km, aber ohne Kilometerpunkte
