@@ -87,12 +87,16 @@ function loadKilometerPoints(geojsonUrl, color, targetLayer, isFiveKm = false) {
 
         const anchor10km = { 1:[7,-15], 2:[40,5], 3:[-5,35], 4:[0,35], 5:[7,-15], 6:[40,5], 7:[5,-15], 8:[5,38], 9:[40,5] };
         const map5to10 = { 1:6, 2:7, 3:8, 4:9, 5:5 };
+        const mapSchuelerTo10 = { 2: 4, 3: 4 }; // beide wie 10km-KM 4
         let anchor;
-        if (!isFiveKm) {
-          anchor = anchor10km[km] || [10,0];
-        } else {
+        if (isFiveKm) {
           const mappedKm = map5to10[km] || km;
-          anchor = anchor10km[mappedKm] || [10,0];
+          anchor = anchor10km[mappedKm] || [10, 0];
+        } else if (isSchuelerlauf) {
+          const mappedKm = mapSchuelerTo10[km] || km;
+          anchor = anchor10km[mappedKm] || [10, 0];
+        } else {
+          anchor = anchor10km[km] || [10, 0];
         }
 
         L.circleMarker(latlng, { radius: 5, color: color, fillColor: color, fillOpacity: 1 }).addTo(targetLayer);
