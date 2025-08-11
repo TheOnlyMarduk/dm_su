@@ -75,7 +75,7 @@ function loadAndDrawArrows(geojsonUrl, color, targetLayer) {
     .catch(err => console.error(`Fehler beim Laden der ${geojsonUrl}:`, err));
 }
 
-function loadKilometerPoints(geojsonUrl, color, targetLayer, isFiveKm = false) {
+function loadKilometerPoints(geojsonUrl, color, targetLayer, mode = "10km") {
   fetch(geojsonUrl)
     .then(res => res.json())
     .then(data => {
@@ -87,12 +87,18 @@ function loadKilometerPoints(geojsonUrl, color, targetLayer, isFiveKm = false) {
 
         const anchor10km = { 1:[7,-15], 2:[40,5], 3:[-5,35], 4:[0,35], 5:[7,-15], 6:[40,5], 7:[5,-15], 8:[5,38], 9:[40,5] };
         const map5to10 = { 1:6, 2:7, 3:8, 4:9, 5:5 };
+        const anchorSchueler = { 1:[10,-20], 2:[0,35], 3:[0,35], 4:[0,35] }; // eigene Werte
+        const mapSchueler = {}; // falls Mapping nötig, hier definieren
+
         let anchor;
-        if (!isFiveKm) {
+        if (mode === "10km") {
           anchor = anchor10km[km] || [10,0];
-        } else {
+        } else if (mode === "5km") {
           const mappedKm = map5to10[km] || km;
           anchor = anchor10km[mappedKm] || [10,0];
+        } else if (mode === "schueler") {
+          const mappedKm = mapSchueler[km] || km;
+          anchor = anchorSchueler[mappedKm] || [10,0];
         }
 
         L.circleMarker(latlng, { radius: 5, color: color, fillColor: color, fillOpacity: 1 }).addTo(targetLayer);
@@ -130,7 +136,7 @@ fetch('10km.geojson')
     map.fitBounds(L.geoJSON(data).getBounds(), { padding: [20,20] });
     addStartAndGoalMarkers(data, 'blue', '10k', layer10km, { start: startMarker10km, goal: goalMarker10km });
     loadAndDrawArrows('richtung.geojson', 'blue', layer10km);
-    loadKilometerPoints('10km_kilometer.geojson', 'blue', layer10km);
+    loadKilometerPoints('10km_kilometer.geojson', 'blue', layer10km, "10km");
     layer10km.addTo(map);
   });
 
@@ -141,17 +147,17 @@ fetch('5km.geojson')
     L.geoJSON(data, { style: { color: 'red', weight: 4 } }).addTo(layer5km);
     addStartAndGoalMarkers(data, 'red', '5k', layer5km, { start: startMarker5km, goal: goalMarker5km });
     loadAndDrawArrows('5km_richtung.geojson', 'red', layer5km);
-    loadKilometerPoints('5km_kilometer.geojson', 'red', layer5km, true);
+    loadKilometerPoints('5km_kilometer.geojson', 'red', layer5km, "5km");
   });
 
-// Schülerlauf (grün)
+// Schülerlauf
 fetch('schuelerlauf.geojson')
   .then(res => res.json())
   .then(data => {
     L.geoJSON(data, { style: { color: 'green', weight: 4 } }).addTo(layerSchuelerlauf);
     addStartAndGoalMarkers(data, 'green', 'S', layerSchuelerlauf, { start: startMarkerSchueler, goal: goalMarkerSchueler });
     loadAndDrawArrows('schueler_richtung.geojson', 'green', layerSchuelerlauf);
-    loadKilometerPoints('schueler_kilometer.geojson', 'green', layerSchuelerlauf);
+    loadKilometerPoints('schueler_kilometer.geojson', 'green', layerSchuelerlauf, "schueler");
   });
 
 loadAndDrawParking();
