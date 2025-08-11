@@ -75,7 +75,7 @@ function loadAndDrawArrows(geojsonUrl, color, targetLayer) {
     .catch(err => console.error(`Fehler beim Laden der ${geojsonUrl}:`, err));
 }
 
-function loadKilometerPoints(geojsonUrl, color, targetLayer, isFiveKm = false) {
+function loadKilometerPoints(geojsonUrl, color, targetLayer, isFiveKm = false, isSchuelerlauf = false) {
   fetch(geojsonUrl)
     .then(res => res.json())
     .then(data => {
@@ -85,9 +85,21 @@ function loadKilometerPoints(geojsonUrl, color, targetLayer, isFiveKm = false) {
         const latlng = L.latLng(coords[1], coords[0]);
         const km = feature.properties.kilometer;
 
-        const anchor10km = { 1:[7,-15], 2:[40,5], 3:[-5,35], 4:[0,35], 5:[7,-15], 6:[40,5], 7:[5,-15], 8:[5,38], 9:[40,5] };
-        const map5to10 = { 1:6, 2:7, 3:8, 4:9, 5:5 };
+        const anchor10km = {
+          1: [7, -15],
+          2: [40, 5],
+          3: [-5, 35],
+          4: [0, 35],
+          5: [7, -15],
+          6: [40, 5],
+          7: [5, -15],
+          8: [5, 38],
+          9: [40, 5]
+        };
+
+        const map5to10 = { 1: 6, 2: 7, 3: 8, 4: 9, 5: 5 };
         const mapSchuelerTo10 = { 2: 4, 3: 4 }; // beide wie 10km-KM 4
+
         let anchor;
         if (isFiveKm) {
           const mappedKm = map5to10[km] || km;
@@ -99,8 +111,19 @@ function loadKilometerPoints(geojsonUrl, color, targetLayer, isFiveKm = false) {
           anchor = anchor10km[km] || [10, 0];
         }
 
-        L.circleMarker(latlng, { radius: 5, color: color, fillColor: color, fillOpacity: 1 }).addTo(targetLayer);
-        const labelIcon = L.divIcon({ className: 'km-label', html: km, iconAnchor: anchor });
+        L.circleMarker(latlng, {
+          radius: 5,
+          color: color,
+          fillColor: color,
+          fillOpacity: 1
+        }).addTo(targetLayer);
+
+        const labelIcon = L.divIcon({
+          className: 'km-label',
+          html: km,
+          iconAnchor: anchor,
+        });
+
         L.marker(latlng, { icon: labelIcon }).addTo(targetLayer);
       });
     })
