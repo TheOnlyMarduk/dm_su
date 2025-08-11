@@ -47,8 +47,6 @@ function createScaledMarkerLabel(text, baseSize, color = 'black') {
 function addStartAndGoalMarkers(geojson, color, labelText, targetLayer, markerRefs) {
   if (!geojson.features || geojson.features.length === 0) return;
   const coords = geojson.features[0].geometry.coordinates;
-  console.log("Start Koordinaten:", startLatLng);
-console.log("Ziel Koordinaten:", goalLatLng);
   const startLatLng = L.latLng(coords[0][1], coords[0][0]);
   const goalLatLng = L.latLng(coords[coords.length - 1][1], coords[coords.length - 1][0]);
 
