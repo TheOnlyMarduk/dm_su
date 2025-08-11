@@ -33,6 +33,8 @@ const layerSchuelerlauf = L.layerGroup();
 const layerKinderlauf = L.layerGroup();
 const layerBambinilauf = L.layerGroup();
 const parkingLayer = L.layerGroup();
+const oepnvLayer = L.layerGroup();
+const infoLayer = L.layerGroup();  // Neuer Gruppenlayer für Parken + ÖPNV
 
 let startMarker10km, goalMarker10km;
 let startMarker5km, goalMarker5km;
@@ -131,14 +133,52 @@ function loadAndDrawParking() {
         const coords = feature.geometry.coordinates;
         const latlng = L.latLng(coords[1], coords[0]);
         const adresse = feature.properties.adresse || "Parkplatz";
-        const parkIcon = () => L.divIcon({ className: "start-goal-icon", iconAnchor: [15,15], html: createScaledMarkerLabel("P", 30) });
-        const marker = L.marker(latlng, { icon: parkIcon() }).addTo(parkingLayer);
+
+        const parkIcon = () => L.divIcon({
+          className: "start-goal-icon",
+          iconAnchor: [15,15],
+          html: createScaledMarkerLabel("P", 30)
+        });
+
+        const marker = L.marker(latlng, { icon: parkIcon() });
         marker.bindTooltip(adresse, { permanent: false, direction: 'top' });
+
+        parkingLayer.addLayer(marker);
+        infoLayer.addLayer(marker);
+
         map.on('zoomend', () => marker.setIcon(parkIcon()));
       });
-      parkingLayer.addTo(map);
     })
     .catch(err => console.error("Fehler beim Laden der parken.geojson:", err));
+}
+
+// ÖPNV-Layer laden und darstellen (mit "H" Symbol und info-Tooltip)
+function loadAndDrawOepnv() {
+  fetch('oepnv.geojson')
+    .then(res => res.json())
+    .then(data => {
+      data.features.forEach(feature => {
+        if (!feature.geometry || feature.geometry.type !== 'Point') return;
+        const coords = feature.geometry.coordinates;
+        const latlng = L.latLng(coords[1], coords[0]);
+        const infoText = feature.properties.info || "ÖPNV";
+
+        const oepnvIcon = () => L.divIcon({
+          className: "start-goal-icon",
+          iconAnchor: [15,15],
+          html: createScaledMarkerLabel("H", 30)
+        });
+
+        const marker = L.marker(latlng, { icon: oepnvIcon() });
+        marker.bindTooltip(infoText, { permanent: false, direction: 'top' });
+
+        oepnvLayer.addLayer(marker);
+        infoLayer.addLayer(marker);
+
+        map.on('zoomend', () => marker.setIcon(oepnvIcon()));
+      });
+    })
+    .catch(err => console.error("Fehler beim Laden der oepnv.geojson:", err));
 }
 
 // 10km-Lauf laden und zeichnen, + Layer zum LayerGroup hinzufügen
@@ -190,10 +230,11 @@ fetch('bambinilauf.geojson')
     loadAndDrawArrows('bambini_richtung.geojson', 'black', layerBambinilauf);
   });
 
-// Parkplätze laden
+// Parkplätze und ÖPNV laden
 loadAndDrawParking();
+loadAndDrawOepnv();
 
-// ** WICHTIG: Laufstrecken als Basis-Layer (Radio-Buttons), Parkplätze als Overlay (Checkbox) **
+// ** WICHTIG: Laufstrecken als Basis-Layer (Radio-Buttons), Parkplätze und Informationen als Overlay (Checkbox) **
 const baseLayers = {
   "10 km DM und Citylauf (2 Runden)": layer10km,
   "5 km Citylauf": layer5km,
@@ -203,16 +244,16 @@ const baseLayers = {
 };
 
 const overlays = {
-  "Parkplätze": parkingLayer
+  "Parkplätze": parkingLayer,
+  "Informationen (Parken + ÖPNV)": infoLayer
 };
 
-// 10 km Lauf und Parkplätze standardmäßig anzeigen
+// Standardmäßig 10 km Lauf und Parkplätze anzeigen
 layer10km.addTo(map);
 parkingLayer.addTo(map);
 
 // Layer-Kontrolle mit Basis-Layern (Radio-Buttons) und Overlays (Checkboxen)
 L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
-
 </script>
 </body>
 </html>
