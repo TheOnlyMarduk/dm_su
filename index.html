@@ -35,6 +35,8 @@ const layerBambinilauf = L.layerGroup();
 const parkingLayer = L.layerGroup();
 const oepnvLayer = L.layerGroup();
 const duscheLayer = L.layerGroup();
+const dixiLayer = L.layerGroup();
+const startLayer = L.layerGroup();
 
 // Marker-Referenzen
 let startMarker10km, goalMarker10km;
@@ -194,7 +196,27 @@ function loadAndDrawDusche() {
     })
     .catch(err => console.error("Fehler beim Laden der dusche.geojson:", err));
 }
-
+// Dixi laden
+function loadAndDrawDixi() {
+  fetch('dixi.geojson')
+    .then(res => res.json())
+    .then(data => {
+      data.features.forEach(feature => {
+        if (!feature.geometry || feature.geometry.type !== 'Point') return;
+        const coords = feature.geometry.coordinates;
+        const latlng = L.latLng(coords[1], coords[0]);
+        const info = feature.properties.info || "Mobile Toilette";
+        const dixi = () => L.divIcon({ 
+          className: "start-goal-icon", 
+          iconAnchor: [15,15], 
+          html: createScaledMarkerLabel("WC", 30, "red") 
+        });
+        const marker = L.marker(latlng, { icon: dixiIcon() }).addTo(dixoLayer);
+        map.on('zoomend', () => marker.setIcon(dixiIcon()));
+      });
+    })
+    .catch(err => console.error("Fehler beim Laden der dixi.geojson:", err));
+}
 // Laufstrecken laden
 fetch('10km.geojson')
   .then(res => res.json())
@@ -245,6 +267,7 @@ fetch('bambinilauf.geojson')
 loadAndDrawParking();
 loadAndDrawOepnv();
 loadAndDrawDusche();
+loadAndDrawDixi();
 
 // Basis-Layer
 const baseLayers = {
@@ -259,7 +282,8 @@ const baseLayers = {
 const overlays = {
   "Parkplätze": parkingLayer,
   "ÖPNV": oepnvLayer,
-  "Umkleide": duscheLayer
+  "Umkleide": duscheLayer,
+  "Mobile Toiletten": dixiLayer,
 };
 
 // Standard-Layer
