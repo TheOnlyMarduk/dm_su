@@ -206,7 +206,7 @@ function loadAndDrawDixi() {
         const coords = feature.geometry.coordinates;
         const latlng = L.latLng(coords[1], coords[0]);
         const info = feature.properties.info || "Mobile Toilette";
-        const dixi = () => L.divIcon({ 
+        const dixiIcon = () => L.divIcon({ 
           className: "start-goal-icon", 
           iconAnchor: [15,15], 
           html: createScaledMarkerLabel("WC", 30, "red") 
