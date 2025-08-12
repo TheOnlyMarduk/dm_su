@@ -220,7 +220,7 @@ fetch('schuelerlauf.geojson')
   .then(res => res.json())
   .then(data => {
     L.geoJSON(data, { style: { color: 'green', weight: 4 } }).addTo(layerSchuelerlauf);
-    addStartAndGoalMarkers(data, 'green', 'S', layerSchuelerlauf, { start: startMarkerSchueler, goal: goalMarkerSchueler });
+    addStartAndGoalMarkers(data, 'green', '3,6', layerSchuelerlauf, { start: startMarkerSchueler, goal: goalMarkerSchueler });
     loadAndDrawArrows('schueler_richtung.geojson', 'green', layerSchuelerlauf);
     loadKilometerPoints('schueler_kilometer.geojson', 'green', layerSchuelerlauf, "schueler");
   });
@@ -229,7 +229,7 @@ fetch('kinderlauf.geojson')
   .then(res => res.json())
   .then(data => {
     L.geoJSON(data, { style: { color: 'brown', weight: 4 } }).addTo(layerKinderlauf);
-    addStartAndGoalMarkers(data, 'brown', 'K', layerKinderlauf, { start: startMarkerKinderlauf, goal: goalMarkerKinderlauf });
+    addStartAndGoalMarkers(data, 'brown', '1,2', layerKinderlauf, { start: startMarkerKinderlauf, goal: goalMarkerKinderlauf });
     loadAndDrawArrows('kinder_richtung.geojson', 'brown', layerKinderlauf);
   });
 
@@ -237,7 +237,7 @@ fetch('bambinilauf.geojson')
   .then(res => res.json())
   .then(data => {
     L.geoJSON(data, { style: { color: 'black', weight: 4 } }).addTo(layerBambinilauf);
-    addStartAndGoalMarkers(data, 'black', 'B', layerBambinilauf, { start: startMarkerBambinilauf, goal: goalMarkerBambinilauf });
+    addStartAndGoalMarkers(data, 'black', '0,6', layerBambinilauf, { start: startMarkerBambinilauf, goal: goalMarkerBambinilauf });
     loadAndDrawArrows('bambini_richtung.geojson', 'black', layerBambinilauf);
   });
 
