@@ -183,7 +183,6 @@ fetch('5km.geojson')
   .then(res => res.json())
   .then(data => {
     L.geoJSON(data, { style: { color: 'red', weight: 4 } }).addTo(layer5km);
-    map.fitBounds(L.geoJSON(data).getBounds(), { padding: [20,20] });
     addStartAndGoalMarkers(data, 'red', '5k', layer5km, { start: startMarker5km, goal: goalMarker5km });
     loadAndDrawArrows('5km_richtung.geojson', 'red', layer5km);
     loadKilometerPoints('5km_kilometer.geojson', 'red', layer5km, "5km");
