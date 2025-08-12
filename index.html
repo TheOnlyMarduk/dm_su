@@ -217,8 +217,6 @@ fetch('bambinilauf.geojson')
 loadAndDrawParking();
 loadAndDrawOepnv();
 
-// Hauptlayer "Informationen"
-const informationLayer = L.layerGroup([parkingLayer, oepnvLayer]);
 
 // Basis-Layer
 const baseLayers = {
@@ -231,14 +229,12 @@ const baseLayers = {
 
 // Overlays
 const overlays = {
-  "Informationen": informationLayer,
   "Parkplätze": parkingLayer,
   "ÖPNV": oepnvLayer
 };
 
 // Standard-Layer
 layer10km.addTo(map);
-informationLayer.addTo(map);
 
 // Layer-Kontrolle
 L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
