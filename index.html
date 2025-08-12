@@ -217,6 +217,30 @@ function loadAndDrawDixi() {
     })
     .catch(err => console.error("Fehler beim Laden der dixi.geojson:", err));
 }
+// ÖPNV laden
+function loadAndDrawStart() {
+  fetch('startunterlagen.geojson')
+    .then(res => res.json())
+    .then(data => {
+      data.features.forEach(feature => {
+        if (!feature.geometry || feature.geometry.type !== 'Point') return;
+        const coords = feature.geometry.coordinates;
+        const latlng = L.latLng(coords[1], coords[0]);
+        const info = feature.properties.info || "Haltestelle";
+        const startIcon = () => L.divIcon({ 
+          className: "start-goal-icon", 
+          iconAnchor: [15,15], 
+          html: createScaledMarkerLabel("S", 30, "red") 
+        });
+        const marker = L.marker(latlng, { icon: startIcon() }).addTo(startLayer);
+        marker.bindTooltip(info.replace(/\n/g, '<br>'), { permanent: false, direction: 'top', opacity: 0.9, sticky: true, interactive: true });
+        map.on('zoomend', () => marker.setIcon(startIcon()));
+      });
+    })
+    .catch(err => console.error("Fehler beim Laden der startunterlagen.geojson:", err));
+}
+
+  
 // Laufstrecken laden
 fetch('10km.geojson')
   .then(res => res.json())
@@ -264,10 +288,11 @@ fetch('bambinilauf.geojson')
   });
 
 // Overlays laden
-loadAndDrawParking();
-loadAndDrawOepnv();
+loadAndDrawStart();  
 loadAndDrawDusche();
 loadAndDrawDixi();
+loadAndDrawParking();
+loadAndDrawOepnv();
 
 // Basis-Layer
 const baseLayers = {
@@ -280,10 +305,11 @@ const baseLayers = {
 
 // Overlays
 const overlays = {
-  "Parkplätze": parkingLayer,
-  "ÖPNV": oepnvLayer,
+  "Startunterlagen": startLayer,
   "Umkleide": duscheLayer,
   "Mobile Toiletten": dixiLayer,
+  "Parkplätze": parkingLayer,
+  "ÖPNV": oepnvLayer
 };
 
 // Standard-Layer
