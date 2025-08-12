@@ -134,7 +134,7 @@ function loadAndDrawParking() {
         if (!feature.geometry || feature.geometry.type !== 'Point') return;
         const coords = feature.geometry.coordinates;
         const latlng = L.latLng(coords[1], coords[0]);
-        const adresse = feature.properties.adresse || "Parkplatz";
+        const adresse = feature.properties.adr || "Parkplatz";
         const parkIcon = () => L.divIcon({ 
           className: "start-goal-icon", 
           iconAnchor: [15,15], 
