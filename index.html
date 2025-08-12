@@ -34,6 +34,7 @@ const layerKinderlauf = L.layerGroup();
 const layerBambinilauf = L.layerGroup();
 const parkingLayer = L.layerGroup();
 const oepnvLayer = L.layerGroup();
+const duscheLayer = L.layerGroup();
 
 // Marker-Referenzen
 let startMarker10km, goalMarker10km;
@@ -171,6 +172,29 @@ function loadAndDrawOepnv() {
     .catch(err => console.error("Fehler beim Laden der oepnv.geojson:", err));
 }
 
+  // dusche laden
+function loadAndDrawDusche() {
+  fetch('dusche.geojson')
+    .then(res => res.json())
+    .then(data => {
+      data.features.forEach(feature => {
+        if (!feature.geometry || feature.geometry.type !== 'Point') return;
+        const coords = feature.geometry.coordinates;
+        const latlng = L.latLng(coords[1], coords[0]);
+        const info = feature.properties.info || "Umkleide";
+        const duscheIcon = () => L.divIcon({ 
+          className: "start-goal-icon", 
+          iconAnchor: [15,15], 
+          html: createScaledMarkerLabel("U", 30, "red") 
+        });
+        const marker = L.marker(latlng, { icon: duscheIcon() }).addTo(duscheLayer);
+        marker.bindTooltip(info.replace(/\n/g, '<br>'), { permanent: false, direction: 'top', opacity: 0.9, sticky: true, interactive: true });
+        map.on('zoomend', () => marker.setIcon(duscheIcon()));
+      });
+    })
+    .catch(err => console.error("Fehler beim Laden der dusche.geojson:", err));
+}
+
 // Laufstrecken laden
 fetch('10km.geojson')
   .then(res => res.json())
@@ -220,6 +244,7 @@ fetch('bambinilauf.geojson')
 // Overlays laden
 loadAndDrawParking();
 loadAndDrawOepnv();
+loadAndDrawDusche();
 
 // Basis-Layer
 const baseLayers = {
@@ -234,6 +259,7 @@ const baseLayers = {
 const overlays = {
   "Parkplätze": parkingLayer,
   "ÖPNV": oepnvLayer
+  "Umkleide": duscheLayer
 };
 
 // Standard-Layer
