@@ -217,7 +217,7 @@ function loadAndDrawDixi() {
     })
     .catch(err => console.error("Fehler beim Laden der dixi.geojson:", err));
 }
-// ÖPNV laden
+// Startunterlagen laden
 function loadAndDrawStart() {
   fetch('startunterlagen.geojson')
     .then(res => res.json())
@@ -226,7 +226,7 @@ function loadAndDrawStart() {
         if (!feature.geometry || feature.geometry.type !== 'Point') return;
         const coords = feature.geometry.coordinates;
         const latlng = L.latLng(coords[1], coords[0]);
-        const info = feature.properties.info || "Haltestelle";
+        const info = feature.properties.info || "Startunterlagen";
         const startIcon = () => L.divIcon({ 
           className: "start-goal-icon", 
           iconAnchor: [15,15], 
