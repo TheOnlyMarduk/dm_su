@@ -211,7 +211,7 @@ function loadAndDrawDixi() {
           iconAnchor: [15,15], 
           html: createScaledMarkerLabel("WC", 30, "red") 
         });
-        const marker = L.marker(latlng, { icon: dixiIcon() }).addTo(dixoLayer);
+        const marker = L.marker(latlng, { icon: dixiIcon() }).addTo(dixiLayer);
         map.on('zoomend', () => marker.setIcon(dixiIcon()));
       });
     })
