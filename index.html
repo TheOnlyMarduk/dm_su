@@ -257,7 +257,7 @@ function loadAndDrawDoping() {
         });
         const marker = L.marker(latlng, { icon: dopingIcon() }).addTo(dopingLayer);
         marker.bindTooltip(info.replace(/\n/g, '<br>'), { permanent: false, direction: 'top', opacity: 0.9, sticky: true, interactive: true });
-        map.on('zoomend', () => marker.setIcon(dopingcon()));
+        map.on('zoomend', () => marker.setIcon(dopingIcon()));
       });
     })
     .catch(err => console.error("Fehler beim Laden der doping.geojson:", err));
