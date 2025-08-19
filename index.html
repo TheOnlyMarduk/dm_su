@@ -188,7 +188,7 @@ function loadAndDrawDusche() {
         const duscheIcon = () => L.divIcon({ 
           className: "start-goal-icon", 
           iconAnchor: [15,15], 
-          html: createScaledMarkerLabel("U", 30, "red") 
+          html: createScaledMarkerLabel("U", 40, "red") 
         });
         const marker = L.marker(latlng, { icon: duscheIcon() }).addTo(duscheLayer);
         marker.bindTooltip(info.replace(/\n/g, '<br>'), { permanent: false, direction: 'top', opacity: 0.9, sticky: true, interactive: true });
@@ -210,7 +210,7 @@ function loadAndDrawDixi() {
         const dixiIcon = () => L.divIcon({ 
           className: "start-goal-icon", 
           iconAnchor: [15,15], 
-          html: createScaledMarkerLabel("WC", 30, "red") 
+          html: createScaledMarkerLabel("WC", 40, "red") 
         });
         const marker = L.marker(latlng, { icon: dixiIcon() }).addTo(dixiLayer);
         map.on('zoomend', () => marker.setIcon(dixiIcon()));
@@ -231,7 +231,7 @@ function loadAndDrawStart() {
         const startIcon = () => L.divIcon({ 
           className: "start-goal-icon", 
           iconAnchor: [15,15], 
-          html: createScaledMarkerLabel("S", 30, "red") 
+          html: createScaledMarkerLabel("S", 40, "red") 
         });
         const marker = L.marker(latlng, { icon: startIcon() }).addTo(startLayer);
         marker.bindTooltip(info.replace(/\n/g, '<br>'), { permanent: false, direction: 'top', opacity: 0.9, sticky: true, interactive: true });
@@ -253,7 +253,7 @@ function loadAndDrawDoping() {
         const dopingIcon = () => L.divIcon({ 
           className: "start-goal-icon", 
           iconAnchor: [15,15], 
-          html: createScaledMarkerLabel("D", 30, "red") 
+          html: createScaledMarkerLabel("D", 40, "red") 
         });
         const marker = L.marker(latlng, { icon: dopingIcon() }).addTo(dopingLayer);
         marker.bindTooltip(info.replace(/\n/g, '<br>'), { permanent: false, direction: 'top', opacity: 0.9, sticky: true, interactive: true });
