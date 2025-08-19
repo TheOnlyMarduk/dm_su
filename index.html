@@ -37,6 +37,7 @@ const oepnvLayer = L.layerGroup();
 const duscheLayer = L.layerGroup();
 const dixiLayer = L.layerGroup();
 const startLayer = L.layerGroup();
+const dopingLayer = L.layerGroup();
 
 // Marker-Referenzen
 let startMarker10km, goalMarker10km;
@@ -239,7 +240,28 @@ function loadAndDrawStart() {
     })
     .catch(err => console.error("Fehler beim Laden der startunterlagen.geojson:", err));
 }
-
+// Doping laden
+function loadAndDrawDoping() {
+  fetch('doping.geojson')
+    .then(res => res.json())
+    .then(data => {
+      data.features.forEach(feature => {
+        if (!feature.geometry || feature.geometry.type !== 'Point') return;
+        const coords = feature.geometry.coordinates;
+        const latlng = L.latLng(coords[1], coords[0]);
+        const info = feature.properties.info || "Dopingkontrolle";
+        const dopingIcon = () => L.divIcon({ 
+          className: "start-goal-icon", 
+          iconAnchor: [15,15], 
+          html: createScaledMarkerLabel("D", 30, "red") 
+        });
+        const marker = L.marker(latlng, { icon: dopingIcon() }).addTo(dopingLayer);
+        marker.bindTooltip(info.replace(/\n/g, '<br>'), { permanent: false, direction: 'top', opacity: 0.9, sticky: true, interactive: true });
+        map.on('zoomend', () => marker.setIcon(dopingcon()));
+      });
+    })
+    .catch(err => console.error("Fehler beim Laden der doping.geojson:", err));
+}
   
 // Laufstrecken laden
 fetch('10km.geojson')
@@ -288,6 +310,7 @@ fetch('bambinilauf.geojson')
   });
 
 // Overlays laden
+loadAndDrawDoping(); 
 loadAndDrawStart();  
 loadAndDrawDusche();
 loadAndDrawDixi();
@@ -306,6 +329,7 @@ const baseLayers = {
 // Overlays
 const overlays = {
   "Startunterlagen": startLayer,
+  "Dopingkontrolle": dopingLayer,
   "Umkleide": duscheLayer,
   "Mobile Toiletten": dixiLayer,
   "Parkplätze": parkingLayer,
