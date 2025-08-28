@@ -33,8 +33,10 @@
 <script>
 const map = L.map('map');
 
-// ===================== OSM Layer =====================
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+// ===================== Hintergrundkarte =====================
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { 
+  attribution: '© OpenStreetMap' 
+}).addTo(map);
 
 // ===================== Layer-Gruppen =====================
 const layer10km = L.layerGroup();
@@ -42,14 +44,17 @@ const layer5km = L.layerGroup();
 const layerSchuelerlauf = L.layerGroup();
 const layerKinderlauf = L.layerGroup();
 const layerBambinilauf = L.layerGroup();
-const umleitungLayer = L.layerGroup(); // Umleitung
+const layerHelfer = L.layerGroup();
+const layerDoping = L.layerGroup();
+const layerStartunterlagen = L.layerGroup();
+const layerDusche = L.layerGroup();
+const layerDixi = L.layerGroup();
+const parkingLayer = L.layerGroup();
+const oepnvLayer = L.layerGroup();
+const layerUmleitung = L.layerGroup(); // NEU
 
 // Marker-Referenzen
 let startMarker10km, goalMarker10km;
-let startMarker5km, goalMarker5km;
-let startMarkerSchueler, goalMarkerSchueler;
-let startMarkerKinderlauf, goalMarkerKinderlauf;
-let startMarkerBambinilauf, goalMarkerBambinilauf;
 
 // Variable für Bounds des 10km-Layers
 let bounds10km = null;
@@ -59,142 +64,189 @@ function createScaledMarkerLabel(text, baseSize, color = 'black') {
   const zoom = map.getZoom();
   const scale = Math.min(1, Math.max(0.6, (zoom - 12) / 6));
   const size = baseSize * scale;
-  return `<div class="marker-label" style="width:${size}px;height:${size}px;font-size:${size*0.45}px;color:${color};border-color:${color};">${text}</div>`;
+  return `<div class="marker-label" style="width:${size}px;height:${size}px;
+              font-size:${size*0.45}px;color:${color};border-color:${color};">${text}</div>`;
 }
 
-// ===================== Start/Ziel Marker =====================
-function addStartAndGoalMarkers(geojson, color, labelText, targetLayer, markerRefs) {
+// ===================== Start- und Zielmarker =====================
+function addStartAndGoalMarkers(geojson, color, labelText, targetLayer) {
   if (!geojson.features || geojson.features.length === 0) return;
   const coords = geojson.features[0].geometry.coordinates;
   const startLatLng = L.latLng(coords[0][1], coords[0][0]);
   const goalLatLng = L.latLng(coords[coords.length - 1][1], coords[coords.length - 1][0]);
 
-  const startIcon = () => L.divIcon({ className: "start-goal-icon", iconAnchor: [15,15], html: createScaledMarkerLabel(labelText, 30, color) });
-  const goalIcon = () => L.divIcon({ className: "start-goal-icon", iconAnchor: [15,15], html: createScaledMarkerLabel("Ziel", 30, color) });
+  const startIcon = () => L.divIcon({ iconAnchor: [15,15], html: createScaledMarkerLabel(labelText, 30, color) });
+  const goalIcon = () => L.divIcon({ iconAnchor: [15,15], html: createScaledMarkerLabel("Ziel", 30, color) });
 
-  markerRefs.start = L.marker(startLatLng, { icon: startIcon() }).addTo(targetLayer);
-  markerRefs.goal = L.marker(goalLatLng, { icon: goalIcon() }).addTo(targetLayer);
+  startMarker10km = L.marker(startLatLng, { icon: startIcon() }).addTo(targetLayer);
+  goalMarker10km = L.marker(goalLatLng, { icon: goalIcon() }).addTo(targetLayer);
 
   map.on('zoomend', () => {
-    if (markerRefs.start) markerRefs.start.setIcon(startIcon());
-    if (markerRefs.goal) markerRefs.goal.setIcon(goalIcon());
+    startMarker10km.setIcon(startIcon());
+    goalMarker10km.setIcon(goalIcon());
   });
 }
 
-// ===================== Pfeile laden =====================
-function loadAndDrawArrows(geojsonUrl, color, targetLayer) {
-  fetch(geojsonUrl)
+// ===================== Helfer laden =====================
+function loadHelfer() {
+  fetch('helfer.geojson')
     .then(res => res.json())
     .then(data => {
-      data.features.forEach(feature => {
-        if (!feature.geometry || feature.geometry.type !== 'Point') return;
-        const coords = feature.geometry.coordinates;
-        const angle = (feature.properties.angle + 270) % 360;
-        const latlng = L.latLng(coords[1], coords[0]);
-        const arrowHtml = `<span class="arrow-symbol" style="transform: rotate(${angle}deg); color: ${color};">➤</span>`;
-        const arrowIcon = L.divIcon({ className: 'arrow-icon', html: arrowHtml, iconSize: [20,20], iconAnchor: [10,10] });
-        L.marker(latlng, { icon: arrowIcon }).addTo(targetLayer);
-      });
-    })
-    .catch(err => console.error(`Fehler beim Laden der ${geojsonUrl}:`, err));
+      L.geoJSON(data, {
+        pointToLayer: (feature, latlng) => {
+          const id = feature.properties.id || '';
+          const color = feature.properties.color || 'red';
+          const anchorX = feature.properties.anchorX ?? 15;
+          const anchorY = feature.properties.anchorY ?? 15;
+
+          const icon = L.divIcon({
+            iconAnchor: [anchorX, anchorY],
+            html: createScaledMarkerLabel(id, 30, color)
+          });
+
+          const tooltipText =
+            `Anzahl: ${feature.properties.Anzahl || ''}<br>` +
+            `Ausrüstung: ${feature.properties.Ausrüstung || ''}<br>` +
+            `Aufgabe: ${feature.properties.Aufgabe || ''}<br>` +
+            `Erfahrung: ${feature.properties.Erfahrung || ''}`;
+
+          return L.marker(latlng, { icon }).bindTooltip(tooltipText, { sticky: true });
+        }
+      }).addTo(layerHelfer);
+    });
 }
 
-// ===================== Umleitung laden =====================
+// ===================== Dopingkontrolle =====================
+function loadDoping() {
+  fetch('doping.geojson')
+    .then(res => res.json())
+    .then(data => {
+      L.geoJSON(data, {
+        pointToLayer: (f, latlng) => L.marker(latlng).bindTooltip("Dopingkontrolle")
+      }).addTo(layerDoping);
+    });
+}
+
+// ===================== Startunterlagen =====================
+function loadStart() {
+  fetch('startunterlagen.geojson')
+    .then(res => res.json())
+    .then(data => {
+      L.geoJSON(data, {
+        pointToLayer: (f, latlng) => L.marker(latlng).bindTooltip("Startunterlagen")
+      }).addTo(layerStartunterlagen);
+    });
+}
+
+// ===================== Dusche =====================
+function loadDusche() {
+  fetch('dusche.geojson')
+    .then(res => res.json())
+    .then(data => {
+      L.geoJSON(data, {
+        pointToLayer: (f, latlng) => L.marker(latlng).bindTooltip("Dusche")
+      }).addTo(layerDusche);
+    });
+}
+
+// ===================== Dixi =====================
+function loadDixi() {
+  fetch('dixi.geojson')
+    .then(res => res.json())
+    .then(data => {
+      L.geoJSON(data, {
+        pointToLayer: (f, latlng) => L.marker(latlng).bindTooltip("Dixi")
+      }).addTo(layerDixi);
+    });
+}
+
+// ===================== Parkplätze =====================
+function loadAndDrawParking() {
+  fetch('parken.geojson')
+    .then(res => res.json())
+    .then(data => {
+      L.geoJSON(data, {
+        pointToLayer: (f, latlng) => L.marker(latlng).bindTooltip(f.properties.adresse || "Parkplatz")
+      }).addTo(parkingLayer);
+    });
+}
+
+// ===================== ÖPNV =====================
+function loadAndDrawOepnv() {
+  fetch('oepnv.geojson')
+    .then(res => res.json())
+    .then(data => {
+      L.geoJSON(data, {
+        pointToLayer: (f, latlng) => L.marker(latlng).bindTooltip(f.properties.info || "Haltestelle")
+      }).addTo(oepnvLayer);
+    });
+}
+
+// ===================== Umleitung =====================
 function loadUmleitung() {
   fetch('umleitung.geojson')
     .then(res => res.json())
     .then(data => {
-      data.features.forEach(feature => {
-        if (feature.geometry.type === "LineString") {
-          const coords = feature.geometry.coordinates;
-          for (let i = 0; i < coords.length - 1; i++) {
-            const segment = {
-              "type": "LineString",
-              "coordinates": [coords[i], coords[i+1]]
-            };
-            const color = (i % 2 === 0) ? "red" : "green";
-            L.geoJSON(segment, {
-              style: {
-                color: color,
-                weight: 4,
-                dashArray: "6,4", // kleine Striche
-                lineCap: "round"
-              }
-            }).addTo(umleitungLayer);
-          }
-        }
-      });
-    })
-    .catch(err => console.error("Fehler beim Laden der umleitung.geojson:", err));
+      L.geoJSON(data, {
+        style: { color: "yellow", weight: 3, dashArray: "6,4" }
+      }).addTo(layerUmleitung);
+    });
 }
 
 // ===================== Laufstrecken laden =====================
 fetch('10km.geojson')
   .then(res => res.json())
   .then(data => {
-    const geojsonLayer = L.geoJSON(data, { style: { color: 'blue', weight: 4 } }).addTo(layer10km);
-    bounds10km = geojsonLayer.getBounds();
+    const gj = L.geoJSON(data, { style: { color: 'blue', weight: 4 } }).addTo(layer10km);
+    bounds10km = gj.getBounds();
     map.fitBounds(bounds10km, { padding: [20,20] });
-    addStartAndGoalMarkers(data, 'blue', '10k', layer10km, { start: startMarker10km, goal: goalMarker10km });
-    loadAndDrawArrows('richtung.geojson', 'blue', layer10km);
+    addStartAndGoalMarkers(data, 'blue', '10k', layer10km);
   });
 
-fetch('5km.geojson')
-  .then(res => res.json())
-  .then(data => {
-    L.geoJSON(data, { style: { color: 'red', weight: 4 } }).addTo(layer5km);
-    addStartAndGoalMarkers(data, 'red', '5k', layer5km, { start: startMarker5km, goal: goalMarker5km });
-    loadAndDrawArrows('5km_richtung.geojson', 'red', layer5km);
-  });
-
-fetch('schuelerlauf.geojson')
-  .then(res => res.json())
-  .then(data => {
-    L.geoJSON(data, { style: { color: 'green', weight: 4 } }).addTo(layerSchuelerlauf);
-    addStartAndGoalMarkers(data, 'green', '3,6', layerSchuelerlauf, { start: startMarkerSchueler, goal: goalMarkerSchueler });
-    loadAndDrawArrows('schueler_richtung.geojson', 'green', layerSchuelerlauf);
-  });
-
-fetch('kinderlauf.geojson')
-  .then(res => res.json())
-  .then(data => {
-    L.geoJSON(data, { style: { color: 'brown', weight: 4 } }).addTo(layerKinderlauf);
-    addStartAndGoalMarkers(data, 'brown', '1,2', layerKinderlauf, { start: startMarkerKinderlauf, goal: goalMarkerKinderlauf });
-  });
-
-fetch('bambinilauf.geojson')
-  .then(res => res.json())
-  .then(data => {
-    L.geoJSON(data, { style: { color: 'black', weight: 4 } }).addTo(layerBambinilauf);
-    addStartAndGoalMarkers(data, 'black', '0,6', layerBambinilauf, { start: startMarkerBambinilauf, goal: goalMarkerBambinilauf });
-  });
+// Weitere Läufe (analog)
+fetch('5km.geojson').then(res => res.json()).then(data => { L.geoJSON(data, { style: { color: 'red', weight: 4 } }).addTo(layer5km); });
+fetch('schuelerlauf.geojson').then(res => res.json()).then(data => { L.geoJSON(data, { style: { color: 'green', weight: 4 } }).addTo(layerSchuelerlauf); });
+fetch('kinderlauf.geojson').then(res => res.json()).then(data => { L.geoJSON(data, { style: { color: 'brown', weight: 4 } }).addTo(layerKinderlauf); });
+fetch('bambinilauf.geojson').then(res => res.json()).then(data => { L.geoJSON(data, { style: { color: 'black', weight: 4 } }).addTo(layerBambinilauf); });
 
 // ===================== Overlays laden =====================
+loadHelfer();
+loadDoping();
+loadStart();
+loadDusche();
+loadDixi();
+loadAndDrawParking();
+loadAndDrawOepnv();
 loadUmleitung();
 
 // ===================== Layer-Kontrolle =====================
 const baseLayers = {
-  "10 km DM und Citylauf (2 Runden)": layer10km,
+  "10 km DM und Citylauf": layer10km,
   "5 km Citylauf": layer5km,
-  "3,6 km KSK Köln - Schülerlauf (U14/U16)": layerSchuelerlauf,
-  "1,2 km KSK Köln - Kinderlauf (U10/U12) (2 Runden)": layerKinderlauf,
-  "0,6 km KSK Köln - Bambinilauf (U8)": layerBambinilauf
+  "3,6 km Schülerlauf": layerSchuelerlauf,
+  "1,2 km Kinderlauf": layerKinderlauf,
+  "0,6 km Bambinilauf": layerBambinilauf
 };
 
 const overlays = {
-  "Umleitung": umleitungLayer
+  "Helfer": layerHelfer,
+  "Dopingkontrolle": layerDoping,
+  "Startunterlagen": layerStartunterlagen,
+  "Dusche": layerDusche,
+  "Dixi": layerDixi,
+  "Parkplätze": parkingLayer,
+  "ÖPNV": oepnvLayer,
+  "Umleitung": layerUmleitung   // NEU ganz unten
 };
 
-// ===================== Standard-Layer =====================
-layer10km.addTo(map); // nur 10km sichtbar
+layer10km.addTo(map);
+layerHelfer.addTo(map);
 
 L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
 
-// ===================== Automatisches Zoomen =====================
-map.on('baselayerchange', function(e) {
-  if (bounds10km) {
-    map.fitBounds(bounds10km, { padding: [20, 20] });
-  }
+// Immer auf 10km zoomen bei Wechsel
+map.on('baselayerchange', function() {
+  if (bounds10km) map.fitBounds(bounds10km, { padding: [20,20] });
 });
 </script>
 </body>
