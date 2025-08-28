@@ -25,7 +25,6 @@
     align-items: center; 
     justify-content: center; 
   }
-  .km-label { background: yellow; border: 1px solid black; border-radius: 3px; padding: 2px 5px; font-weight: bold; font-size: 12px; display: flex; align-items: center; justify-content: center; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -43,13 +42,7 @@ const layer5km = L.layerGroup();
 const layerSchuelerlauf = L.layerGroup();
 const layerKinderlauf = L.layerGroup();
 const layerBambinilauf = L.layerGroup();
-const parkingLayer = L.layerGroup();
-const oepnvLayer = L.layerGroup();
-const duscheLayer = L.layerGroup();
-const dixiLayer = L.layerGroup();
-const startLayer = L.layerGroup();
-const dopingLayer = L.layerGroup();
-const umleitungLayer = L.layerGroup(); // NEU: Umleitung
+const umleitungLayer = L.layerGroup(); // Umleitung
 
 // Marker-Referenzen
 let startMarker10km, goalMarker10km;
@@ -111,16 +104,26 @@ function loadUmleitung() {
   fetch('umleitung.geojson')
     .then(res => res.json())
     .then(data => {
-      L.geoJSON(data, {
-        style: function (feature) {
-          return {
-            color: feature.properties.color || "red", // Standardfarbe, wenn im GeoJSON nicht gesetzt
-            weight: 4,
-            dashArray: "10,5", // gestrichelt
-            lineCap: 'round'
-          };
+      data.features.forEach(feature => {
+        if (feature.geometry.type === "LineString") {
+          const coords = feature.geometry.coordinates;
+          for (let i = 0; i < coords.length - 1; i++) {
+            const segment = {
+              "type": "LineString",
+              "coordinates": [coords[i], coords[i+1]]
+            };
+            const color = (i % 2 === 0) ? "red" : "green";
+            L.geoJSON(segment, {
+              style: {
+                color: color,
+                weight: 4,
+                dashArray: "6,4", // kleine Striche
+                lineCap: "round"
+              }
+            }).addTo(umleitungLayer);
+          }
         }
-      }).addTo(umleitungLayer);
+      });
     })
     .catch(err => console.error("Fehler beim Laden der umleitung.geojson:", err));
 }
@@ -168,7 +171,6 @@ fetch('bambinilauf.geojson')
 
 // ===================== Overlays laden =====================
 loadUmleitung();
-// hier deine bestehenden Funktionen: loadAndDrawDoping(), loadAndDrawStart(), loadAndDrawDusche(), loadAndDrawDixi(), loadAndDrawParking(), loadAndDrawOepnv()
 
 // ===================== Layer-Kontrolle =====================
 const baseLayers = {
@@ -180,13 +182,7 @@ const baseLayers = {
 };
 
 const overlays = {
-  "Umleitung": umleitungLayer,
-  "Startunterlagen": startLayer,
-  "Dopingkontrolle": dopingLayer,
-  "Umkleide": duscheLayer,
-  "Mobile Toiletten": dixiLayer,
-  "Parkplätze": parkingLayer,
-  "ÖPNV": oepnvLayer
+  "Umleitung": umleitungLayer
 };
 
 // ===================== Standard-Layer =====================
