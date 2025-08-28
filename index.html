@@ -13,7 +13,18 @@
   #map { height: 100vh; width: 100vw; }
   .arrow-icon { font-size: 20px; display: flex; align-items: center; justify-content: center; width: 20px; height: 20px; pointer-events: none; }
   .arrow-symbol { display: inline-block; transform-origin: center; }
-  .marker-label { background: white; border: 2px solid black; border-radius: 50%; text-align: center; font-weight: bold; color: black; box-shadow: 0 0 3px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; }
+  .marker-label { 
+    background: white; 
+    border: 2px solid black; 
+    border-radius: 50%; 
+    text-align: center; 
+    font-weight: bold; 
+    color: black; 
+    box-shadow: 0 0 3px rgba(0,0,0,0.5); 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+  }
   .km-label { background: yellow; border: 1px solid black; border-radius: 3px; padding: 2px 5px; font-weight: bold; font-size: 12px; display: flex; align-items: center; justify-content: center; white-space: nowrap; }
 </style>
 </head>
@@ -38,7 +49,7 @@ const duscheLayer = L.layerGroup();
 const dixiLayer = L.layerGroup();
 const startLayer = L.layerGroup();
 const dopingLayer = L.layerGroup();
-const umleitungLayer = L.layerGroup(); // NEU: Umleitungslayer
+const umleitungLayer = L.layerGroup(); // NEU: Umleitung
 
 // Marker-Referenzen
 let startMarker10km, goalMarker10km;
@@ -95,7 +106,7 @@ function loadAndDrawArrows(geojsonUrl, color, targetLayer) {
     .catch(err => console.error(`Fehler beim Laden der ${geojsonUrl}:`, err));
 }
 
-// ===================== NEU: Umleitung laden =====================
+// ===================== Umleitung laden =====================
 function loadUmleitung() {
   fetch('umleitung.geojson')
     .then(res => res.json())
@@ -103,9 +114,9 @@ function loadUmleitung() {
       L.geoJSON(data, {
         style: function (feature) {
           return {
-            color: feature.properties.color || "red", // falls im GeoJSON überschrieben
+            color: feature.properties.color || "red", // Standardfarbe, wenn im GeoJSON nicht gesetzt
             weight: 4,
-            dashArray: "10,5", // gestrichelte Linie
+            dashArray: "10,5", // gestrichelt
             lineCap: 'round'
           };
         }
@@ -125,16 +136,39 @@ fetch('10km.geojson')
     loadAndDrawArrows('richtung.geojson', 'blue', layer10km);
   });
 
-// andere Strecken analog wie gehabt…
+fetch('5km.geojson')
+  .then(res => res.json())
+  .then(data => {
+    L.geoJSON(data, { style: { color: 'red', weight: 4 } }).addTo(layer5km);
+    addStartAndGoalMarkers(data, 'red', '5k', layer5km, { start: startMarker5km, goal: goalMarker5km });
+    loadAndDrawArrows('5km_richtung.geojson', 'red', layer5km);
+  });
 
-// Overlays laden
+fetch('schuelerlauf.geojson')
+  .then(res => res.json())
+  .then(data => {
+    L.geoJSON(data, { style: { color: 'green', weight: 4 } }).addTo(layerSchuelerlauf);
+    addStartAndGoalMarkers(data, 'green', '3,6', layerSchuelerlauf, { start: startMarkerSchueler, goal: goalMarkerSchueler });
+    loadAndDrawArrows('schueler_richtung.geojson', 'green', layerSchuelerlauf);
+  });
+
+fetch('kinderlauf.geojson')
+  .then(res => res.json())
+  .then(data => {
+    L.geoJSON(data, { style: { color: 'brown', weight: 4 } }).addTo(layerKinderlauf);
+    addStartAndGoalMarkers(data, 'brown', '1,2', layerKinderlauf, { start: startMarkerKinderlauf, goal: goalMarkerKinderlauf });
+  });
+
+fetch('bambinilauf.geojson')
+  .then(res => res.json())
+  .then(data => {
+    L.geoJSON(data, { style: { color: 'black', weight: 4 } }).addTo(layerBambinilauf);
+    addStartAndGoalMarkers(data, 'black', '0,6', layerBambinilauf, { start: startMarkerBambinilauf, goal: goalMarkerBambinilauf });
+  });
+
+// ===================== Overlays laden =====================
 loadUmleitung();
-loadAndDrawDoping(); 
-loadAndDrawStart();  
-loadAndDrawDusche();
-loadAndDrawDixi();
-loadAndDrawParking();
-loadAndDrawOepnv();
+// hier deine bestehenden Funktionen: loadAndDrawDoping(), loadAndDrawStart(), loadAndDrawDusche(), loadAndDrawDixi(), loadAndDrawParking(), loadAndDrawOepnv()
 
 // ===================== Layer-Kontrolle =====================
 const baseLayers = {
@@ -146,7 +180,7 @@ const baseLayers = {
 };
 
 const overlays = {
-  "Umleitung": umleitungLayer,   // NEU
+  "Umleitung": umleitungLayer,
   "Startunterlagen": startLayer,
   "Dopingkontrolle": dopingLayer,
   "Umkleide": duscheLayer,
@@ -155,13 +189,12 @@ const overlays = {
   "ÖPNV": oepnvLayer
 };
 
-// Standard-Layer (10km sichtbar, Umleitung NICHT aktiv)
-layer10km.addTo(map);
+// ===================== Standard-Layer =====================
+layer10km.addTo(map); // nur 10km sichtbar
 
-// Layer-Kontrolle
 L.control.layers(baseLayers, overlays, { collapsed: false }).addTo(map);
 
-// Beim Layerwechsel immer auf 10km-Bounds zoomen
+// ===================== Automatisches Zoomen =====================
 map.on('baselayerchange', function(e) {
   if (bounds10km) {
     map.fitBounds(bounds10km, { padding: [20, 20] });
