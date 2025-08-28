@@ -38,7 +38,7 @@ const duscheLayer = L.layerGroup();
 const dixiLayer = L.layerGroup();
 const startLayer = L.layerGroup();
 const dopingLayer = L.layerGroup();
-const layer = L.layerGroup();
+const layerUmleitung = L.layerGroup();
 
 // Marker-Referenzen
 let startMarker10km, goalMarker10km;
@@ -263,16 +263,16 @@ function loadAndDrawDoping() {
     })
     .catch(err => console.error("Fehler beim Laden der doping.geojson:", err));
 }
-// ===================== Umleitung =====================
+ // ===================== Umleitung =====================
 function loadUmleitung() {
   fetch('umleitung.geojson')
     .then(res => res.json())
     .then(data => {
       L.geoJSON(data, {
-        style: { color: "yellow", weight: 3, dashArray: "6,4" }
+        style: { color: "black", weight: 3, dashArray: "6,4" }
       }).addTo(layerUmleitung);
     });
-}
+} 
 // Laufstrecken laden
 fetch('10km.geojson')
   .then(res => res.json())
@@ -326,7 +326,7 @@ loadAndDrawDusche();
 loadAndDrawDixi();
 loadAndDrawParking();
 loadAndDrawOepnv();
-"Umleitung": layerUmleitung
+layerUmleitung();
 
 // Basis-Layer
 const baseLayers = {
