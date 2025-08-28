@@ -269,7 +269,7 @@ function loadUmleitung() {
     .then(res => res.json())
     .then(data => {
       L.geoJSON(data, {
-        style: { color: "#00FFFF", weight: 4, dashArray: "6,4" }
+        style: { color: "#FF00FF", weight: 4, dashArray: "6,4" }
       }).addTo(umleitungLayer);
     });
 } 
