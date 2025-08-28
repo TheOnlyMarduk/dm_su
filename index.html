@@ -39,6 +39,7 @@ const dixiLayer = L.layerGroup();
 const startLayer = L.layerGroup();
 const dopingLayer = L.layerGroup();
 const umleitungLayer = L.layerGroup();
+const verbotLayer = L.layerGroup();
 
 // Marker-Referenzen
 let startMarker10km, goalMarker10km;
@@ -273,6 +274,32 @@ function loadUmleitung() {
       }).addTo(umleitungLayer);
     });
 } 
+// ===================== Verbot (Stoppschilder) =====================
+function loadVerbot() {
+  fetch('verbot.geojson')
+    .then(res => res.json())
+    .then(data => {
+      data.features.forEach(feature => {
+        if (!feature.geometry || feature.geometry.type !== 'Point') return;
+        const coords = feature.geometry.coordinates;
+        const latlng = L.latLng(coords[1], coords[0]);
+
+        // Stoppschild Symbol
+        const stopIcon = () => L.divIcon({
+          className: "stop-icon",
+          iconAnchor: [15,15],
+          html: `<div style="width:30px;height:30px;border-radius:50%;background:red;position:relative;display:flex;align-items:center;justify-content:center;">
+                   <div style="width:20px;height:6px;background:white;"></div>
+                 </div>`
+        });
+
+        const marker = L.marker(latlng, { icon: stopIcon() }).addTo(verbotLayer);
+        map.on('zoomend', () => marker.setIcon(stopIcon()));
+      });
+    })
+    .catch(err => console.error("Fehler beim Laden von verbot.geojson:", err));
+}
+
 // Laufstrecken laden
 fetch('10km.geojson')
   .then(res => res.json())
@@ -327,6 +354,7 @@ loadAndDrawDixi();
 loadAndDrawParking();
 loadAndDrawOepnv();
 loadUmleitung();
+loadVerbot();
 
 // Basis-Layer
 const baseLayers = {
@@ -345,7 +373,7 @@ const overlays = {
   "Mobile Toiletten": dixiLayer,
   "Parkplätze": parkingLayer,
   "ÖPNV": oepnvLayer,
-  "Umleitung": umleitungLayer
+  "Umleitung und Streckensperrungen": L.layerGroup([umleitungLayer, verbotLayer])
 };
 
 // Standard-Layer
