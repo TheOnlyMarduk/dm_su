@@ -38,7 +38,7 @@ const duscheLayer = L.layerGroup();
 const dixiLayer = L.layerGroup();
 const startLayer = L.layerGroup();
 const dopingLayer = L.layerGroup();
-const layerUmleitung = L.layerGroup();
+const umleitungLayer = L.layerGroup();
 
 // Marker-Referenzen
 let startMarker10km, goalMarker10km;
@@ -270,7 +270,7 @@ function loadUmleitung() {
     .then(data => {
       L.geoJSON(data, {
         style: { color: "black", weight: 3, dashArray: "6,4" }
-      }).addTo(layerUmleitung);
+      }).addTo(umleitungLayer);
     });
 } 
 // Laufstrecken laden
@@ -326,7 +326,7 @@ loadAndDrawDusche();
 loadAndDrawDixi();
 loadAndDrawParking();
 loadAndDrawOepnv();
-layerUmleitung();
+loadUmleitung();
 
 // Basis-Layer
 const baseLayers = {
@@ -345,6 +345,7 @@ const overlays = {
   "Mobile Toiletten": dixiLayer,
   "Parkplätze": parkingLayer,
   "ÖPNV": oepnvLayer
+  "Umleitung": umleitungLayer
 };
 
 // Standard-Layer
